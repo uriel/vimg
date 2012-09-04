@@ -23,7 +23,7 @@ import (
 type keyb struct {
 	key    string
 	desc   string
-	action func(w *window)
+	command []string
 }
 
 // window embeds an xwindow.Window value and all available channels used to
@@ -93,36 +93,6 @@ func (w *window) create() {
 	w.Map()
 }
 
-// stepLeft moves the origin of the image to the left.
-func (w *window) stepLeft() {
-	w.chans.drawChan <- func(origin image.Point) image.Point {
-		return image.Point{origin.X - flagStepIncrement, origin.Y}
-	}
-}
-
-// stepRight moves the origin of the image to the right.
-func (w *window) stepRight() {
-	w.chans.drawChan <- func(origin image.Point) image.Point {
-		return image.Point{origin.X + flagStepIncrement, origin.Y}
-	}
-}
-
-// stepUp moves the origin of the image down (this would be up, but X origins
-// are in the top-left corner).
-func (w *window) stepUp() {
-	w.chans.drawChan <- func(origin image.Point) image.Point {
-		return image.Point{origin.X, origin.Y - flagStepIncrement}
-	}
-}
-
-// stepDown moves the origin of the image up (this would be down, but X origins
-// are in the top-left corner).
-func (w *window) stepDown() {
-	w.chans.drawChan <- func(origin image.Point) image.Point {
-		return image.Point{origin.X, origin.Y + flagStepIncrement}
-	}
-}
-
 // paint uses the xgbutil/xgraphics package to copy the area corresponding
 // to ximg in its pixmap to the window. It will also issue a clear request
 // before hand to try and avoid artifacts.
@@ -164,9 +134,7 @@ func (w *window) setupEventHandlers(chans chans) {
 
 	// And ask the canvas to draw the first image when it gets around to it.
 	go func() {
-		w.chans.drawChan <- func(origin image.Point) image.Point {
-			return image.Point{}
-		}
+		w.chans.ctl <-  []string{"pan", "NOWHERE"}
 	}()
 
 	// Keep a state of window geometry.
@@ -179,9 +147,7 @@ func (w *window) setupEventHandlers(chans chans) {
 	// Repaint the window on expose events.
 	xevent.ExposeFun(
 		func(X *xgbutil.XUtil, ev xevent.ExposeEvent) {
-			w.chans.drawChan <- func(origin image.Point) image.Point {
-				return origin
-			}
+			w.chans.ctl <- []string{"pan", "origin"}
 		}).Connect(w.X, w.Id)
 
 	// Setup a drag handler to allow panning.
@@ -203,7 +169,7 @@ func (w *window) setupEventHandlers(chans chans) {
 		keyb := keyb
 		err := keybind.KeyPressFun(
 			func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-				keyb.action(w)
+				w.chans.ctl <-keyb.command
 			}).Connect(w.X, w.Id, keyb.key, false)
 		if err != nil {
 			errLg.Println(err)

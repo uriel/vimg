@@ -43,41 +43,16 @@ var (
 	// sequence to bind to, the action to run when that key sequence is
 	// pressed and a quick description of what the keybinding does.
 	keybinds = []keyb{
-		{
-			"left", "Cycle to the previous image.",
-			func(w *window) { w.chans.prevImg <- struct{}{} },
-		},
-		{
-			"right", "Cycle to the next image.",
-			func(w *window) { w.chans.nextImg <- struct{}{} },
-		},
-		{
-			"shift-h", "Cycle to the previous image.",
-			func(w *window) { w.chans.prevImg <- struct{}{} },
-		},
-		{
-			"shift-l", "Cycle to the next image.",
-			func(w *window) { w.chans.nextImg <- struct{}{} },
-		},
-		{
-			"r", "Resize the window to fit the current image.",
-			func(w *window) { w.chans.resizeToImageChan <- struct{}{} },
-		},
-		{
-			"h", "Pan left.", func(w *window) { w.stepLeft() },
-		},
-		{
-			"j", "Pan down.", func(w *window) { w.stepDown() },
-		},
-		{
-			"k", "Pan up.", func(w *window) { w.stepUp() },
-		},
-		{
-			"l", "Pan right.", func(w *window) { w.stepRight() },
-		},
-		{
-			"q", "Quit.", func(w *window) { xevent.Quit(w.X) },
-		},
+		{ "left", "Cycle to the previous image.", []string{"prev"} },
+		{ "right", "Cycle to the next image.", []string{"next"} },
+		{ "shift-h", "Cycle to the previous image.", []string{"prev"} },
+		{ "shift-l", "Cycle to the next image.", []string{"next"} },
+		{ "r", "Resize the window to fit the current image.", []string{"fit"} },
+		{ "h", "Pan left.", []string{"pan", "left"} },
+		{ "j", "Pan down.", []string{"pan", "down"} },
+		{ "k", "Pan up.", []string{"pan", "up"} },
+		{ "l", "Pan right.",[]string{"pan", "right"} },
+		{ "q", "Quit.", []string{"quit"} },
 	}
 )
 
