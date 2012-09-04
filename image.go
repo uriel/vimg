@@ -56,11 +56,11 @@ func newImage(X *xgbutil.XUtil, img Img, index int,
 		// a *ton* of images. (In all likelihood, we'll run out of memory
 		// before a new pixmap cannot be created.)
 		errLg.Fatal(err)
-	} else {
-		start = time.Now()
-		reg.XDraw()
-		lg("Drawn '%s' to an X pixmap (%s).", img.name, time.Since(start))
 	}
+
+	start = time.Now()
+	reg.XDraw()
+	lg("Drawn '%s' to an X pixmap (%s).", img.name, time.Since(start))
 
 	// Tell the canvas that this image has been loaded.
 	imgChan <- imageLoaded{index: index, img: &vimage{Image: reg, name: img.name}}
