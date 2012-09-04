@@ -113,10 +113,9 @@ func init() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [flags] image-file [image-file ...]\n",
-		basename(os.Args[0]))
+	fmt.Fprintf(os.Stderr, "Usage: imgv [flags] image-file [image-file ...]\n")
 	flag.PrintDefaults()
-	os.Exit(1)
+	os.Exit(2)
 }
 
 func main() {

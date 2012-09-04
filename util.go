@@ -2,7 +2,6 @@ package main
 
 import (
 	"image"
-	"strings"
 
 	"github.com/BurntSushi/xgbutil/xgraphics"
 )
@@ -23,14 +22,6 @@ func vpCenter(ximg *xgraphics.Image, canWidth, canHeight int) image.Point {
 		ymargin = (canHeight - ximg.Bounds().Dy()) / 2
 	}
 	return image.Point{xmargin, ymargin}
-}
-
-// basename retrieves the basename of a file path.
-func basename(fName string) string {
-	if lslash := strings.LastIndex(fName, "/"); lslash != -1 {
-		fName = fName[lslash+1:]
-	}
-	return fName
 }
 
 func min(a, b int) int {
