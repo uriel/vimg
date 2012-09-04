@@ -41,8 +41,8 @@ type chans struct {
 	panEndChan   chan image.Point
 }
 
-// imageLoaded in the kind of value sent from each image generation goroutine
-// when the image has finished loading.
+// imageLoaded is sent from each image generation goroutine when the image has
+// finished loading.
 type imageLoaded struct {
 	img   *vimage
 	index int
@@ -51,14 +51,14 @@ type imageLoaded struct {
 // canvas is meant to be run as a single goroutine that maintains the state
 // of the image viewer. It manipulates state by reading values from the channels
 // defined in the 'chans' type.
-func canvas(X *xgbutil.XUtil, window *window, names []string, nimgs int) chans {
+func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 	imgChan := make(chan imageLoaded, 0)
 	drawChan := make(chan func(pt image.Point) image.Point, 0)
 	resizeToImageChan := make(chan struct{}, 0)
 	prevImg := make(chan struct{}, 0)
 	nextImg := make(chan struct{}, 0)
 
-	imgLoadChans := make([]chan struct{}, nimgs)
+	imgLoadChans := make([]chan struct{}, len(imgs))
 	for i := range imgLoadChans {
 		imgLoadChans[i] = make(chan struct{}, 0)
 	}
@@ -82,7 +82,6 @@ func canvas(X *xgbutil.XUtil, window *window, names []string, nimgs int) chans {
 		panEndChan:   panEndChan,
 	}
 
-	imgs := make([]*vimage, nimgs)
 	window.setupEventHandlers(chans)
 	current := 0
 	origin := image.Point{0, 0}
@@ -96,8 +95,8 @@ func canvas(X *xgbutil.XUtil, window *window, names []string, nimgs int) chans {
 		}
 
 		current = i
-		if imgs[i] == nil {
-			window.nameSet(fmt.Sprintf("%s - Loading...", names[i]))
+		if imgs[i].vimage == nil {
+			window.nameSet(fmt.Sprintf("%s - Loading...", imgs[i].name))
 			window.ClearAll()
 
 			if imgLoadChans[i] != nil {
@@ -107,25 +106,25 @@ func canvas(X *xgbutil.XUtil, window *window, names []string, nimgs int) chans {
 			return
 		}
 
-		origin = originTrans(pt, window, imgs[current])
-		show(window, imgs[i], origin)
+		origin = originTrans(pt, window, imgs[current].vimage)
+		show(window, imgs[i].vimage, origin)
 	}
 
 	go func() {
 		for {
 			select {
 			case img := <-imgChan:
-				imgs[img.index] = img.img
+				imgs[img.index].vimage = img.img
 
 				// If this is the current image, show it!
 				if current == img.index {
-					show(window, imgs[current], origin)
+					show(window, imgs[current].vimage, origin)
 				}
 			case funpt := <-drawChan:
 				setImage(current, funpt(origin))
 			case <-resizeToImageChan:
-				window.Resize(imgs[current].Bounds().Dx(),
-					imgs[current].Bounds().Dy())
+				window.Resize(imgs[current].vimage.Bounds().Dx(),
+					imgs[current].vimage.Bounds().Dy())
 			case <-prevImg:
 				setImage(current-1, image.Point{0, 0})
 			case <-nextImg:

@@ -24,26 +24,22 @@ type vimage struct {
 // is a smart decision.
 // Note that this process, particularly image conversion, can be quite
 // costly for large images.
-func newImage(X *xgbutil.XUtil, name string, img image.Image, index int,
+func newImage(X *xgbutil.XUtil, img Img, index int,
 	imgLoadChan chan struct{}, imgChan chan imageLoaded) {
 
 	// Don't start loading until we're told to do so.
 	<-imgLoadChan
 
-	// We send this when we're done processing this image, whether its
-	// an error or not.
-	loaded := imageLoaded{index: index}
-
 	start := time.Now()
-	reg := xgraphics.NewConvert(X, img)
+	reg := xgraphics.NewConvert(X, img.image)
 	lg("Converted '%s' to an xgraphics.Image type (%s).",
-		name, time.Since(start))
+		img.name, time.Since(start))
 
 	// Only blend a checkered background if the image *may* have an alpha 
 	// channel. If we want to be a bit more efficient, we could type switch
 	// on all image types use Opaque, but this may add undesirable overhead.
 	// (Where the overhead is scanning the image for opaqueness.)
-	switch img.(type) {
+	switch img.image.(type) {
 	case *image.Gray:
 	case *image.Gray16:
 	case *image.YCbCr:
@@ -51,7 +47,7 @@ func newImage(X *xgbutil.XUtil, name string, img image.Image, index int,
 		start = time.Now()
 		blendCheckered(reg)
 		lg("Blended '%s' into a checkered background (%s).",
-			name, time.Since(start))
+			img.name, time.Since(start))
 	}
 
 	if err := reg.CreatePixmap(); err != nil {
@@ -63,16 +59,11 @@ func newImage(X *xgbutil.XUtil, name string, img image.Image, index int,
 	} else {
 		start = time.Now()
 		reg.XDraw()
-		lg("Drawn '%s' to an X pixmap (%s).", name, time.Since(start))
-	}
-
-	loaded.img = &vimage{
-		Image: reg,
-		name:  name,
+		lg("Drawn '%s' to an X pixmap (%s).", img.name, time.Since(start))
 	}
 
 	// Tell the canvas that this image has been loaded.
-	imgChan <- loaded
+	imgChan <- imageLoaded{index: index, img: &vimage{Image: reg, name: img.name}}
 }
 
 // blendCheckered is basically a copy of xgraphics.Blend with no interfaces.

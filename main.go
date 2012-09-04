@@ -158,7 +158,7 @@ func main() {
 	window := newWindow(X)
 
 	// Decode all images (in parallel).
-	names, imgs := decodeImages(findFiles(flag.Args()))
+	imgs := decodeImages(findFiles(flag.Args()))
 
 	// Die now if we don't have any images!
 	if len(imgs) == 0 {
@@ -167,13 +167,13 @@ func main() {
 
 	// Auto-size the window if appropriate.
 	if flagAutoResize {
-		window.Resize(imgs[0].Bounds().Dx(), imgs[0].Bounds().Dy())
+		window.Resize(imgs[0].image.Bounds().Dx(), imgs[0].image.Bounds().Dy())
 	}
 
 	// Create the canvas and start the image goroutines.
-	chans := canvas(X, window, names, len(imgs))
+	chans := canvas(X, window, imgs)
 	for i, img := range imgs {
-		go newImage(X, names[i], img, i, chans.imgLoadChans[i], chans.imgChan)
+		go newImage(X, img, i, chans.imgLoadChans[i], chans.imgChan)
 	}
 
 	// Start the main X event loop.
@@ -192,12 +192,12 @@ func findFiles(args []string) []string {
 			files = append(files, f)
 		}
 	}
-	return files 
+	return files
 }
 
 func dirImages(dir string) []string {
 
-	fd, _ := os.Open(dir)	
+	fd, _ := os.Open(dir)
 	fs, _ := fd.Readdirnames(0)
 	files := []string{}
 	for _, f := range fs {
@@ -209,21 +209,21 @@ func dirImages(dir string) []string {
 	return files
 }
 
+type Img struct {
+	image  image.Image
+	name   string
+	vimage *vimage
+}
+
 // decodeImages takes a list of image files and decodes them into image.Image
 // types. Note that the number of images returned may not be the number of
 // image files passed in. Namely, an image file is skipped if it cannot be
 // read or deocoded into an image type that Go understands.
-func decodeImages(imageFiles []string) ([]string, []image.Image) {
-	// A temporary type used to transport decoded images over channels.
-	type tmpImage struct {
-		img  image.Image
-		name string
-	}
-
+func decodeImages(imageFiles []string) []Img {
 	// Decoded all images specified in parallel.
-	imgChans := make([]chan tmpImage, len(imageFiles))
+	imgChans := make([]chan Img, len(imageFiles))
 	for i, fName := range imageFiles {
-		imgChans[i] = make(chan tmpImage, 0)
+		imgChans[i] = make(chan Img, 0)
 		go func(i int, fName string) {
 			file, err := os.Open(fName)
 			if err != nil {
@@ -243,23 +243,20 @@ func decodeImages(imageFiles []string) ([]string, []image.Image) {
 			lg("Decoded '%s' into image type '%s' (%s).",
 				fName, kind, time.Since(start))
 
-			imgChans[i] <- tmpImage{
-				img:  img,
-				name: basename(fName),
-			}
+			imgChans[i] <- Img{img, fName, nil}
 		}(i, fName)
 	}
 
 	// Now collect all the decoded images into a slice of names and a slice
 	// of images.
-	names := make([]string, 0, flag.NArg())
-	imgs := make([]image.Image, 0, flag.NArg())
+	imgs := make([]Img, 0, len(imageFiles))
 	for _, imgChan := range imgChans {
-		if tmpImg, ok := <-imgChan; ok {
-			names = append(names, tmpImg.name)
-			imgs = append(imgs, tmpImg.img)
+		// UUU I don't understand why this is async
+		// Don't we miss files this way?!
+		if i, ok := <-imgChan; ok {
+			imgs = append(imgs, i)
 		}
 	}
 
-	return names, imgs
+	return imgs
 }
