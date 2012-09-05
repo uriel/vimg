@@ -20,7 +20,6 @@ import (
 
 var (
 	// When flagVerbose is true, logging output will be written to stderr.
-	// Errors will always be written to stderr.
 	flagVerbose bool
 
 	// The initial width and height of the window.
@@ -57,31 +56,19 @@ var (
 )
 
 func init() {
-	// Set GOMAXPROCS, since imgv can benefit greatly from parallelism.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	// Set the prefix for verbose output.
 	log.SetPrefix("[imgv] ")
 
-	// Set all of the flags.
-	flag.BoolVar(&flagVerbose, "v", false,
-		"If set, logging output will be printed to stderr.")
-	flag.IntVar(&flagWidth, "width", 600,
-		"The initial width of the window.")
-	flag.IntVar(&flagHeight, "height", 600,
-		"The initial height of the window.")
-	flag.BoolVar(&flagAutoResize, "auto-resize", false,
-		"If set, window will resize to size of first image.")
-	flag.IntVar(&flagStepIncrement, "increment", 20,
-		"The increment (in pixels) used to pan the image.")
-	flag.StringVar(&flagProfile, "profile", "",
-		"If set, a CPU profile will be saved to the file name provided.")
-	flag.BoolVar(&flagKeybindings, "keybindings", false,
-		"If set, imgv will output a list all keybindings.")
+	flag.BoolVar(&flagVerbose, "v", false, "Print logging output to stderr.")
+	flag.IntVar(&flagWidth, "width", 600, "Initial window width.")
+	flag.IntVar(&flagHeight, "height", 600, "Initial window.")
+	flag.IntVar(&flagStepIncrement, "increment", 20, "Increment (in pixels) used to pan the image.")
+	flag.StringVar(&flagProfile, "profile", "", "Save CPU profile to the file name provided.")
+	flag.BoolVar(&flagKeybindings, "keybindings", false, "Output a list all keybindings.")
 	flag.Usage = usage
 	flag.Parse()
 
-	// Do some error checking on the flag values... naughty!
 	if flagWidth == 0 || flagHeight == 0 {
 		errLg.Fatal("The width and height must be non-zero values.")
 	}
@@ -94,7 +81,6 @@ func usage() {
 }
 
 func main() {
-	// If we just need the keybindings, print them and be done.
 	if flagKeybindings {
 		for _, keyb := range keybinds {
 			fmt.Printf("%-10s %s\n", keyb.key, keyb.desc)
@@ -104,8 +90,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Run the CPU profile if we're instructed to.
-	if len(flagProfile) > 0 {
+	if flagProfile != "" {
 		f, err := os.Create(flagProfile)
 		if err != nil {
 			errLg.Fatal(err)
@@ -114,7 +99,6 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	// Whoops!
 	if flag.NArg() == 0 {
 		fmt.Fprint(os.Stderr, "\n")
 		errLg.Print("No images specified.\n\n")
@@ -136,12 +120,7 @@ func main() {
 
 	// Die now if we don't have any images!
 	if len(imgs) == 0 {
-		errLg.Fatal("No images specified could be shown. Quitting...")
-	}
-
-	// Auto-size the window if appropriate.
-	if flagAutoResize {
-		window.Resize(imgs[0].image.Bounds().Dx(), imgs[0].image.Bounds().Dy())
+		errLg.Fatal("No images specified could be shown.")
 	}
 
 	// Create the canvas and start the image goroutines.
@@ -225,8 +204,6 @@ func decodeImages(imageFiles []string) []Img {
 	// of images.
 	imgs := make([]Img, 0, len(imageFiles))
 	for _, imgChan := range imgChans {
-		// UUU I don't understand why this is async
-		// Don't we miss files this way?!
 		if i, ok := <-imgChan; ok {
 			imgs = append(imgs, i)
 		}
