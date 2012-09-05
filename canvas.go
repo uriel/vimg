@@ -70,11 +70,13 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 		if i < 0 {
 			i = len(imgs) - 1
 		}
+		if current != i {
+			window.ClearAll()
+		}
 
 		current = i
 		if imgs[i].vimage == nil {
 			window.nameSet(fmt.Sprintf("%s - Loading...", imgs[i].name))
-			window.ClearAll()
 
 			if imgLoadChans[i] != nil {
 				imgLoadChans[i] <- struct{}{}
