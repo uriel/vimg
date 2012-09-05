@@ -173,39 +173,34 @@ type Img struct {
 // image files passed in. Namely, an image file is skipped if it cannot be
 // read or deocoded into an image type that Go understands.
 func decodeImages(imageFiles []string) []Img {
-	// Decoded all images specified in parallel.
-	imgChans := make([]chan Img, len(imageFiles))
-	for i, fName := range imageFiles {
-		imgChans[i] = make(chan Img, 0)
-		go func(i int, fName string) {
+	imgChan := make(chan *Img)
+	for _, name := range imageFiles {
+		go func(fName string) {
 			file, err := os.Open(fName)
 			if err != nil {
 				errLg.Println(err)
-				close(imgChans[i])
+				imgChan <- nil
 				return
 			}
 
 			start := time.Now()
 			img, kind, err := image.Decode(file)
 			if err != nil {
-				errLg.Printf("Could not decode '%s' into a supported image "+
-					"format: %s", fName, err)
-				close(imgChans[i])
+				errLg.Printf("Could not decode '%s' into a supported image "+ "format: %s", fName, err)
+				imgChan <- nil
 				return
 			}
-			lg("Decoded '%s' into image type '%s' (%s).",
-				fName, kind, time.Since(start))
+			lg("Decoded '%s' into image type '%s' (%s).", fName, kind, time.Since(start))
 
-			imgChans[i] <- Img{img, fName, nil}
-		}(i, fName)
+			imgChan <- &Img{img, fName, nil}
+		}(name)
 	}
 
-	// Now collect all the decoded images into a slice of names and a slice
-	// of images.
 	imgs := make([]Img, 0, len(imageFiles))
-	for _, imgChan := range imgChans {
-		if i, ok := <-imgChan; ok {
-			imgs = append(imgs, i)
+	// We should get as many imgs as names, failed ones will be 'nil'
+	for _ = range imageFiles {
+		if img := <-imgChan; img != nil {
+			imgs = append(imgs, *img)
 		}
 	}
 
