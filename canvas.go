@@ -149,7 +149,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 }
 
 // originTrans translates the origin with respect to the current image and the
-// current canvas size. This makes sure we never incorrect position the image.
+// current canvas size. This makes sure we never incorrectly position the image.
 // (i.e., panning never goes too far, and whenever the canvas is bigger than
 // the image, the origin is *always* (0, 0).
 func originTrans(pt image.Point, win *window, img *vimage) image.Point {

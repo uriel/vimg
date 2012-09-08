@@ -1,19 +1,25 @@
-A minimalistic image viewer written in Go.
+VImg 
+====
+
+
+A minimalistic image viewer written in Go with a vi(m) stile interface.
 
 The list of image formats supported is currently at the mercy of whatever is 
 supported by the Go standard library. Currently, those formats are png, jpg and 
 gif.
 
-Please see `imgv --help` for more options.
-
-Quick Usage
-===========
-go get github.com/BurntSushi/imgv
-imgv image.png image.gif image.jpg
+Please see `vimg --help` for more options.
 
 Installation
-============
-go get github.com/BurntSushi/imgv
+------------
+
+	go get github.com/uriel/vimg
+
+Quick Usage
+-----------
+
+	vimg image.png image.gif image.jpg
+
 
 Dependencies
 ============

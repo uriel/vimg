@@ -1,24 +1,21 @@
 /*
-imgv is a simple image viewer that only works with X and is written in Go. It 
+VImg is a simple image viewer that only works with X and is written in Go. It 
 supports image formats that can be decoded by the Go standard library 
 (currently jpeg, gif and png). It supports panning the image but does not (yet) 
 support zooming.
 
 Usage:
-	imgv [flags] image-file [image-file ...]
+	vimg [flags] image-file [image-file ...]
 
 The flags are:
 	--height pixels, --width pixels
 		The 'height' and 'width' flags allow one to specify the initial size
 		of the image window. The image window can still change size afterwards.
-	--auto-resize
-		If set, the image window will be automatically resized to the first 
-		image displayed. This overrides the 'height' and 'width' options.
 	--increment pixels
 		The amount of pixels to pan an image at each step when using the 
 		keyboard shortcuts.
 	--keybindings
-		If set, a list of all key bindings (and mouse bindings) set by imgv is
+		If set, a list of all key bindings (and mouse bindings) set by vimg is
 		printed. A small description of what each key binding does is included.
 	-v
 		If set, more output will be printed to stderr. Useful for debugging.
@@ -28,7 +25,7 @@ The flags are:
 
 Details
 
-imgv is about as simple as it gets for an image viewer. It only supports
+VImg is about as simple as it gets for an image viewer. It only supports
 displaying the image and panning around the image when parts of it are not
 viewable. It does not support zooming or any kind of image manipulation.
 
@@ -42,7 +39,7 @@ upon its implementation.
 
 High-level overview
 
-imgv starts up by attempting to decode all images specified on the command 
+vimg starts up by attempting to decode all images specified on the command 
 line. After all images are decoded, the first image is converted to an 
 xgbutil/xgraphics.Image type and drawn on to an X pixmap. At this point, the 
 first image is then painted to the window.
@@ -97,10 +94,7 @@ suspect is the source of its speediness.
 
 Zooming
 
-Zooming into an image can be more precisely described as increasing the scale 
-of an image (zoom in) and decreasing the scale of an image (zoom out).
-
-Zooming adds some complexity to the design of imgv, as it requires representing 
+Zooming adds some complexity to the design of vimg, as it requires representing 
 each image as a set of images, and keeping state to determine which image in 
 the set is currently viewable. (Where each image in the set corresponds to a 
 different scaling level.)
@@ -129,7 +123,7 @@ Portability
 Obviously, the image viewer will only work with an X server. There are no plans 
 to change this.
 
-More interesting is portability among X servers. While imgv is itself portable 
+More interesting is portability among X servers. While vimg is itself portable 
 across any X server, the underlying library (xgbutil/xgraphics) is not quite 
 there yet. Namely, xgbutil/xgraphics assumes a BGRx format (24 bit depth with 
 32 bytes per pixel and a least significant image byte order). This is wrong and 

@@ -16,14 +16,11 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 )
 
-// keyb represents a value in the keybinding list. Namely, it contains the
-// function to run when a particular key sequence has been pressed, the
-// key sequence to bind to, and a quick description of what the keybinding
-// actually does.
+// keyb represents a keybinding.
 type keyb struct {
-	key    string
-	desc   string
-	command []string
+	key    string // key sequence
+	desc   string // description
+	command []string // commands to 'run'
 }
 
 // window embeds an xwindow.Window value and all available channels used to
@@ -107,7 +104,7 @@ func (w *window) paint(ximg *xgraphics.Image) {
 // verbose output if it fails.
 func (w *window) nameSet(name string) {
 	// Set _NET_WM_NAME so it looks nice.
-	err := ewmh.WmNameSet(w.X, w.Id, fmt.Sprintf("imgv :: %s", name))
+	err := ewmh.WmNameSet(w.X, w.Id, fmt.Sprintf("vimg :: %s", name))
 	if err != nil { // not a fatal error
 		lg("Could not set _NET_WM_NAME: %s", err)
 	}
@@ -118,8 +115,7 @@ func (w *window) nameSet(name string) {
 // ConfigureNotify events will cause the window to update its state of geometry.
 // Expose events will cause the window to repaint the current image.
 // Button events to allow panning.
-// Key events to perform various tasks when certain keys are pressed. Should
-// these be configurable? Meh.
+// Key events to perform various tasks when certain keys are pressed.
 func (w *window) setupEventHandlers(chans chans) {
 	w.chans = chans
 	w.Listen(xproto.EventMaskStructureNotify | xproto.EventMaskExposure |
@@ -164,8 +160,6 @@ func (w *window) setupEventHandlers(chans chans) {
 			w.chans.panEndChan <- image.Point{ex, ey}
 		})
 
-	// Set up a map of keybindings to avoid a lot of boiler plate.
-	// for keystring, fun := range kbs { 
 	for _, keyb := range keybinds {
 		keyb := keyb
 		err := keybind.KeyPressFun(

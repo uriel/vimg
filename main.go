@@ -35,7 +35,7 @@ var (
 	// Whether to run a CPU profile.
 	flagProfile string
 
-	// When set, imgv will print all keybindings and exit.
+	// Print all keybindings and exit.
 	flagKeybindings bool
 
 	// A list of keybindings. Each value corresponds to a triple of the key
@@ -58,7 +58,7 @@ var (
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	log.SetPrefix("[imgv] ")
+	log.SetPrefix("[VImg] ")
 
 	flag.BoolVar(&flagVerbose, "v", false, "Print logging output to stderr.")
 	flag.IntVar(&flagWidth, "width", 600, "Initial window width.")
@@ -75,7 +75,7 @@ func init() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: imgv [flags] image-file [image-file ...]\n")
+	fmt.Fprintf(os.Stderr, "Usage: vimg [flags] image-file [image-file ...]\n")
 	flag.PrintDefaults()
 	os.Exit(2)
 }
@@ -118,7 +118,6 @@ func main() {
 	// Decode all images (in parallel).
 	imgs := decodeImages(findFiles(flag.Args()))
 
-	// Die now if we don't have any images!
 	if len(imgs) == 0 {
 		errLg.Fatal("No images specified could be shown.")
 	}
