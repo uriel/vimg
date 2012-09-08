@@ -24,11 +24,7 @@ type vimage struct {
 // is a smart decision.
 // Note that this process, particularly image conversion, can be quite
 // costly for large images.
-func newImage(X *xgbutil.XUtil, img Img, index int,
-	imgLoadChan chan struct{}, imgChan chan imageLoaded) {
-
-	// Don't start loading until we're told to do so.
-	<-imgLoadChan
+func newImage(X *xgbutil.XUtil, img Img, index int, imgChan chan imageLoaded) {
 
 	start := time.Now()
 	reg := xgraphics.NewConvert(X, img.image)

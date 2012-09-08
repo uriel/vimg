@@ -18,11 +18,6 @@ type chans struct {
 
 	ctl chan []string
 
-	// imgLoadChans act as synchronization points for the image generated
-	// goroutines. That is, an image doesn't start loading until its
-	// corresponding channel in the imgLoadChans slice is pinged.
-	imgLoadChans []chan struct{}
-
 	// The pan{Start,Step,End}Chan types facilitate panning. They correspond
 	// to "drag start", "drag step", and "drag end."
 	panStartChan chan image.Point
@@ -42,16 +37,9 @@ type imageLoaded struct {
 // defined in the 'chans' type.
 func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 
-	imgLoadChans := make([]chan struct{}, len(imgs))
-	for i := range imgLoadChans {
-		imgLoadChans[i] = make(chan struct{}, 0)
-	}
-
 	chans := chans{
 		imgChan: make(chan imageLoaded, 0),
 		ctl:     make(chan []string, 0),
-
-		imgLoadChans: imgLoadChans,
 
 		panStartChan: make(chan image.Point, 0),
 		panStepChan:  make(chan image.Point, 0),
@@ -78,10 +66,6 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 		if imgs[i].vimage == nil {
 			window.nameSet(fmt.Sprintf("%s - Loading...", imgs[i].name))
 
-			if imgLoadChans[i] != nil {
-				imgLoadChans[i] <- struct{}{}
-				imgLoadChans[i] = nil
-			}
 			return
 		}
 

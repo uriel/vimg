@@ -125,7 +125,7 @@ func main() {
 	// Create the canvas and start the image goroutines.
 	chans := canvas(X, window, imgs)
 	for i, img := range imgs {
-		go newImage(X, img, i, chans.imgLoadChans[i], chans.imgChan)
+		go newImage(X, img, i, chans.imgChan)
 	}
 
 	// Start the main X event loop.
@@ -164,6 +164,7 @@ func dirImages(dir string) []string {
 type Img struct {
 	image  image.Image
 	name   string
+	load  chan *vimage 
 	vimage *vimage
 }
 
@@ -191,7 +192,7 @@ func decodeImages(imageFiles []string) []Img {
 			}
 			lg("Decoded '%s' into image type '%s' (%s).", fName, kind, time.Since(start))
 
-			imgChan <- &Img{img, fName, nil}
+			imgChan <- &Img{img, fName, nil, nil}
 		}(name)
 	}
 
