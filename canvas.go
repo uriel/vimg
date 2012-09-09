@@ -52,6 +52,9 @@ func preload(win *window, imgs []Img, idx int) {
 		}
 	}
 	// TODO: 'Garbage collect' far away images when memory starts to become low.
+	//fidx := idx+len(imgs)/2 // Start freeing as far away as possible
+	// TODO: preload also for when iterating backwards? could use last step to predict
+	// the general iteraction direction.
 }
 
 // canvas is meant to be run as a single goroutine that maintains the state
