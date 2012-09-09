@@ -129,11 +129,6 @@ func (w *window) setupEventHandlers(chans chans) {
 		errLg.Fatal(err)
 	}
 
-	// And ask the canvas to draw the first image when it gets around to it.
-	go func() {
-		w.chans.ctl <- []string{"pan", "NOWHERE"}
-	}()
-
 	// Keep a state of window geometry.
 	xevent.ConfigureNotifyFun(
 		func(X *xgbutil.XUtil, ev xevent.ConfigureNotifyEvent) {
