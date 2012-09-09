@@ -64,7 +64,6 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 
 		panStartChan: make(chan image.Point, 0),
 		panStepChan:  make(chan image.Point, 0),
-		panEndChan:   make(chan image.Point, 0),
 	}
 
 	window.setupEventHandlers(chans)
@@ -146,8 +145,6 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 				xd, yd := panStart.X-pt.X, panStart.Y-pt.Y
 				setImage(current,
 					image.Point{xd + panOrigin.X, yd + panOrigin.Y})
-			case <-chans.panEndChan:
-				panStart, panOrigin = image.Point{}, image.Point{}
 			}
 		}
 	}()

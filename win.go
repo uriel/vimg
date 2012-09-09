@@ -156,9 +156,7 @@ func (w *window) setupEventHandlers(chans chans) {
 		func(X *xgbutil.XUtil, rx, ry, ex, ey int) {
 			w.chans.panStepChan <- image.Point{ex, ey}
 		},
-		func(X *xgbutil.XUtil, rx, ry, ex, ey int) {
-			w.chans.panEndChan <- image.Point{ex, ey}
-		})
+		func(X *xgbutil.XUtil, rx, ry, ex, ey int) { return })
 
 	for _, keyb := range keybinds {
 		keyb := keyb
