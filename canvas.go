@@ -5,7 +5,6 @@ import (
 	"image"
 	"runtime"
 
-	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
 )
 
@@ -19,33 +18,35 @@ type chans struct {
 	panStepChan  chan image.Point
 }
 
-func loader(X *xgbutil.XUtil, imgs []Img, idxs ...int) {
+func loader(win *window, imgs []Img, idxs ...int) {
 	lg("Starting loader for idxs: %v", idxs)
 	for _, i := range idxs {
 		if i < len(imgs) {
-			newImage(X, &imgs[i])
+			newImage(win, &imgs[i])
 			runtime.Gosched()
 		}
 	}
 }
 
-func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
+func preload(win *window, imgs []Img, idx int) {
 	procs := runtime.GOMAXPROCS(-1)
 	gos := procs
 	for i, img := range imgs[idx:] {
-		if gos <= 0 {
-			return
-		}
 		if img.vimage == nil {
-			gos -= 1
-			sids := make([]int, 0, 10)
+
+			sids := make([]int, 0, 16)
 			for y := idx + i; y < len(imgs) && y < idx+i+10; y += procs {
 				if imgs[y].loading == false {
 					imgs[y].loading = true
 					sids = append(sids, y)
 				}
 			}
-			go loader(X, imgs, sids...)
+			go loader(win, imgs, sids...)
+			gos -= 1
+
+			if gos < 0 {
+				return
+			}
 		}
 	}
 	return
@@ -56,8 +57,7 @@ func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
 // canvas is meant to be run as a single goroutine that maintains the state
 // of the image viewer. It manipulates state by reading values from the channels
 // defined in the 'chans' type.
-func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
-
+func canvas(win *window, imgs []Img) chans {
 	chans := chans{
 		ctl: make(chan []string, 0),
 
@@ -65,7 +65,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 		panStepChan:  make(chan image.Point, 0),
 	}
 
-	window.setupEventHandlers(chans)
+	win.setupEventHandlers(chans)
 	current := 0
 	origin := image.Point{0, 0}
 
@@ -77,7 +77,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 			i = len(imgs) - 1
 		}
 		if current != i {
-			window.ClearAll()
+			win.ClearAll()
 		}
 
 		current = i
@@ -85,19 +85,19 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 		img := &imgs[i]
 		lg("setImage %d, %v, %s", i, img.vimage, img.name)
 		if img.vimage == nil {
-			preload(X, imgs, i)
-			window.nameSet(fmt.Sprintf("%s - Loading... %d", img.name, i))
+			preload(win, imgs, i)
+			win.nameSet(fmt.Sprintf("%s - Loading... %d", img.name, i))
 			img.vimage = <-img.load
 		}
 
 		if img.vimage.err != nil {
-			window.nameSet(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
+			win.nameSet(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
 			return
 		}
 
 		lg("setImage show() %d, %v, %d", i, img.vimage, len(img.load))
-		origin = originTrans(pt, window, img.vimage)
-		show(window, img, origin)
+		origin = originTrans(pt, win, img.vimage)
+		show(win, img, origin)
 	}
 
 	go func() {
@@ -115,7 +115,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 				// resize the window to fit the current image exactly.
 				case "fit":
 					b := imgs[current].vimage.Bounds()
-					window.Resize(b.Dx(), b.Dy())
+					win.Resize(b.Dx(), b.Dy())
 				case "pan":
 					p := image.Point{}
 					switch cmd[1] {
@@ -135,7 +135,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 					setImage(current, p)
 				case "quit":
 					lg("Quit!")
-					xevent.Quit(window.X)
+					xevent.Quit(win.X)
 				}
 			case pt := <-chans.panStartChan:
 				panStart = pt

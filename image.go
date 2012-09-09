@@ -4,7 +4,6 @@ import (
 	"image"
 	"time"
 
-	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xgraphics"
 )
 
@@ -24,7 +23,7 @@ type vimage struct {
 // is a smart decision.
 // Note that this process, particularly image conversion, can be quite
 // costly for large images.
-func newImage(X *xgbutil.XUtil, img *Img) {
+func newImage(win *window, img *Img) {
 
 	// If we already loaded the image, do nothing.
 	select {
@@ -40,8 +39,10 @@ func newImage(X *xgbutil.XUtil, img *Img) {
 		return
 	}
 
+	// im = scale(im, win.Geom.Width(), win.Geom.Height())
+
 	start := time.Now()
-	reg := xgraphics.NewConvert(X, im)
+	reg := xgraphics.NewConvert(win.X, im)
 	lg("Converted '%s' to an xgraphics.Image type (%s).", img.name, time.Since(start))
 
 	// Only blend a checkered background if the image *may* have an alpha 
@@ -55,8 +56,7 @@ func newImage(X *xgbutil.XUtil, img *Img) {
 	default:
 		start = time.Now()
 		blendCheckered(reg)
-		lg("Blended '%s' into a checkered background (%s).",
-			img.name, time.Since(start))
+		lg("Blended '%s' into a checkered background (%s).", img.name, time.Since(start))
 	}
 
 	if err := reg.CreatePixmap(); err != nil {
@@ -74,7 +74,6 @@ func newImage(X *xgbutil.XUtil, img *Img) {
 	// Tell the canvas that this image has been loaded.
 	select {
 	case img.load <- &vimage{Image: reg, err: nil}:
-		return
 	default:
 		lg("LOADING already loaded img! %v", img)
 	}

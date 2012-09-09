@@ -122,7 +122,7 @@ func main() {
 	}
 
 	// Create the canvas, this is the heart of the app
-	canvas(X, window, imgs)
+	canvas(window, imgs)
 
 	// Start the main X event loop.
 	xevent.Main(X)
