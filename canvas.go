@@ -97,7 +97,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 			return
 		}
 
-		lg("XXXXXXXX setImage show() %d, %v, %d", i, img.vimage, len(img.load))
+		lg("setImage show() %d, %v, %d", i, img.vimage, len(img.load))
 		origin = originTrans(pt, window, img.vimage)
 		show(window, img, origin)
 	}
