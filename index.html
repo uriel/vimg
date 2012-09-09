@@ -8,20 +8,20 @@
     <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
     <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
 
-    <title>Imgv by uriel</title>
+    <title>VImg by uriel</title>
   </head>
 
   <body>
 
     <header>
       <div class="container">
-        <h1>Imgv</h1>
+        <h1>VImg</h1>
         <h2>VImg is a minimalist image viewer written in Go.</h2>
 
         <section id="downloads">
-          <a href="https://github.com/uriel/imgv/zipball/master" class="btn">Download as .zip</a>
-          <a href="https://github.com/uriel/imgv/tarball/master" class="btn">Download as .tar.gz</a>
-          <a href="https://github.com/uriel/imgv" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+          <a href="https://github.com/uriel/vimg/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/uriel/vimg/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/uriel/vimg" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
         </section>
       </div>
     </header>
@@ -30,13 +30,9 @@
       <section id="main_content">
         <h1>VImg </h1>
 
-<p>A minimalistic image viewer written in Go with a vi(m) stile interface.</p>
+<p>A minimalist image viewer written in Go with a vi(m) stile user interface.</p>
 
-<p>The list of image formats supported is currently at the mercy of whatever is 
-supported by the Go standard library. Currently, those formats are png, jpg and 
-gif.</p>
-
-<p>Please see <code>vimg --help</code> for more options.</p>
+<p>See <code>vimg --help</code> for more options.</p>
 
 <h2>Installation</h2>
 
@@ -45,14 +41,23 @@ gif.</p>
 
 <h2>Quick Usage</h2>
 
-<pre><code>vimg image.png image.gif image.jpg
+<pre><code>vimg image.png folder/ image.gif image.jpg
 </code></pre>
 
-<h1>Dependencies</h1>
+<h2>Dependencies</h2>
 
-<p>Go
-XGB
-xgbutil</p>
+<ul>
+<li>Go</li>
+<li>XGB</li>
+<li>xgbutil</li>
+</ul><p>XGB and xgbutil will be installed automagically by <code>go get</code>.</p>
+
+<h2>Authors</h2>
+
+<ul>
+<li>Andrew Gallant (aka BurntSushi) - Original author of imgv.</li>
+<li>Uriel (aka uriel) - Forked imgv to death and turned it into vimg, all bugs are my fault.</li>
+</ul>
       </section>
     </div>
 
