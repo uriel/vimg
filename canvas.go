@@ -18,40 +18,40 @@ type chans struct {
 	panStepChan  chan image.Point
 }
 
-func loader(win *window, imgs []Img, idxs ...int) {
-	lg("Starting loader for idxs: %v", idxs)
-	for _, i := range idxs {
-		if i < len(imgs) {
-			newImage(win, &imgs[i])
-			runtime.Gosched()
-		}
+func loader(win *window, imgs chan *Img) {
+	for im := range imgs {
+		newImage(win, im)
+		runtime.Gosched()
 	}
 }
 
+var loaders []chan *Img
+
 func preload(win *window, imgs []Img, idx int) {
-	procs := runtime.GOMAXPROCS(-1)
-	gos := procs
-	for i, img := range imgs[idx:] {
-		if img.vimage == nil {
 
-			sids := make([]int, 0, 16)
-			for y := idx + i; y < len(imgs) && y < idx+i+10; y += procs {
-				if imgs[y].loading == false {
-					imgs[y].loading = true
-					sids = append(sids, y)
+	if loaders == nil {
+		loaders = make([]chan *Img, runtime.NumCPU())
+		for i, _ := range loaders {
+			loaders[i] = make(chan *Img, 32)
+			go loader(win, loaders[i])
+		}
+	}
+
+	for i := 0; i <= 32*len(loaders) && i+idx < len(imgs); i++ {
+		img := &imgs[i+idx]
+		if img.vimage == nil && img.loading == false {
+		loop:
+			for _, l := range loaders {
+				select {
+				case l <- img:
+					imgs[i+idx].loading = true
+					break loop
+				default:
 				}
-			}
-			go loader(win, imgs, sids...)
-			gos -= 1
-
-			if gos < 0 {
-				return
 			}
 		}
 	}
-	return
 	// TODO: 'Garbage collect' far away images when memory starts to become low.
-	// TODO: preload also for when iterating backwards
 }
 
 // canvas is meant to be run as a single goroutine that maintains the state
