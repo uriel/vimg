@@ -149,9 +149,9 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 		}
 	}()
 
-	// Draw first image, things seem to work fine without this.
-	// Are we certain to get an X expose event on startup?
-	//chans.ctl <- []string{"pan", "NOWHERE"}
+	// Draw first image. 
+	// If we always go FS we might not need this as we will get an X expose event.
+	chans.ctl <- []string{"pan", "NOWHERE"}
 
 	return chans
 }
