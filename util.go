@@ -2,6 +2,8 @@ package main
 
 import (
 	"image"
+	"log"
+	"os"
 
 	"github.com/BurntSushi/xgbutil/xgraphics"
 )
@@ -36,4 +38,16 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// Logging
+
+var errLg = log.New(os.Stderr, "[vimg error] ", log.Lshortfile)
+
+// lg is a convenient alias for printing verbose output.
+func lg(format string, v ...interface{}) {
+	if !flagVerbose {
+		return
+	}
+	log.Printf(format, v...)
 }
