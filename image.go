@@ -26,7 +26,7 @@ type vimage struct {
 // costly for large images.
 func newImage(X *xgbutil.XUtil, img *Img) {
 
-	// If we already loaded the image, don't reload it
+	// If we already loaded the image, do nothing.
 	select {
 	case vi := <-img.load:
 		img.load <- vi
@@ -76,7 +76,7 @@ func newImage(X *xgbutil.XUtil, img *Img) {
 	case img.load <- &vimage{Image: reg, err: nil}:
 		return
 	default:
-		lg("LOADING already loaded img??! %v", img)
+		lg("LOADING already loaded img! %v", img)
 	}
 }
 

@@ -30,7 +30,6 @@ type keyb struct {
 // window focuses on the more X related aspects of setting up the canvas.
 type window struct {
 	*xwindow.Window
-	chans chans
 }
 
 // newWndow creates a new window and dies on failure.
@@ -44,9 +43,7 @@ func newWindow(X *xgbutil.XUtil) *window {
 		errLg.Fatalf("Could not create window: %s", err)
 	}
 
-	w := &window{
-		Window: xwin,
-	}
+	w := &window{xwin}
 	w.create()
 
 	return w
@@ -117,15 +114,13 @@ func (w *window) nameSet(name string) {
 // Button events to allow panning.
 // Key events to perform various tasks when certain keys are pressed.
 func (w *window) setupEventHandlers(chans chans) {
-	w.chans = chans
 	w.Listen(xproto.EventMaskStructureNotify | xproto.EventMaskExposure |
 		xproto.EventMaskButtonPress | xproto.EventMaskButtonRelease |
 		xproto.EventMaskKeyPress)
 
 	// Get the current geometry in case we don't get a ConfigureNotify event
 	// (or have already missed it).
-	_, err := w.Geometry()
-	if err != nil {
+	if _, err := w.Geometry(); err != nil {
 		errLg.Fatal(err)
 	}
 
@@ -139,17 +134,17 @@ func (w *window) setupEventHandlers(chans chans) {
 	// Repaint the window on expose events.
 	xevent.ExposeFun(
 		func(X *xgbutil.XUtil, ev xevent.ExposeEvent) {
-			w.chans.ctl <- []string{"pan", "origin"}
+			chans.ctl <- []string{"pan", "origin"}
 		}).Connect(w.X, w.Id)
 
 	// Setup a drag handler to allow panning.
 	mousebind.Drag(w.X, w.Id, w.Id, "1", false,
 		func(X *xgbutil.XUtil, rx, ry, ex, ey int) (bool, xproto.Cursor) {
-			w.chans.panStartChan <- image.Point{ex, ey}
+			chans.panStartChan <- image.Point{ex, ey}
 			return true, 0
 		},
 		func(X *xgbutil.XUtil, rx, ry, ex, ey int) {
-			w.chans.panStepChan <- image.Point{ex, ey}
+			chans.panStepChan <- image.Point{ex, ey}
 		},
 		func(X *xgbutil.XUtil, rx, ry, ex, ey int) { return })
 
@@ -157,7 +152,7 @@ func (w *window) setupEventHandlers(chans chans) {
 		keyb := keyb
 		err := keybind.KeyPressFun(
 			func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-				w.chans.ctl <- keyb.command
+				chans.ctl <- keyb.command
 			}).Connect(w.X, w.Id, keyb.key, false)
 		if err != nil {
 			errLg.Println(err)

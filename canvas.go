@@ -13,11 +13,10 @@ import (
 type chans struct {
 	ctl chan []string
 
-	// The pan{Start,Step,End}Chan types facilitate panning. They correspond
-	// to "drag start", "drag step", and "drag end."
+	// The pan{Start,Step}Chan channels facilitate panning. They correspond
+	// to "drag start", "drag step"
 	panStartChan chan image.Point
 	panStepChan  chan image.Point
-	panEndChan   chan image.Point
 }
 
 func loader(X *xgbutil.XUtil, imgs []Img, idxs ...int) {
@@ -143,8 +142,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 				panOrigin = origin
 			case pt := <-chans.panStepChan:
 				xd, yd := panStart.X-pt.X, panStart.Y-pt.Y
-				setImage(current,
-					image.Point{xd + panOrigin.X, yd + panOrigin.Y})
+				setImage(current, image.Point{xd + panOrigin.X, yd + panOrigin.Y})
 			}
 		}
 	}()

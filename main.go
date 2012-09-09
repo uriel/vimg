@@ -25,10 +25,6 @@ var (
 	// The initial width and height of the window.
 	flagWidth, flagHeight int
 
-	// If set, the image window will automatically resize to the first image
-	// that it displays.
-	flagAutoResize bool
-
 	// The amount to increment panning when using h,j,k,l
 	flagStepIncrement int
 
@@ -85,8 +81,7 @@ func main() {
 		for _, keyb := range keybinds {
 			fmt.Printf("%-10s %s\n", keyb.key, keyb.desc)
 		}
-		fmt.Printf("%-10s %s\n", "mouse",
-			"Left mouse button will pan the image.")
+		fmt.Printf("%-10s %s\n", "mouse", "Left mouse button will pan the image.")
 		os.Exit(0)
 	}
 
@@ -133,8 +128,7 @@ func main() {
 	xevent.Main(X)
 }
 
-func findFiles(args []string) []string {
-	files := []string{}
+func findFiles(args []string) (files []string) {
 	for _, f := range args {
 		fi, err := os.Stat(f)
 		if err != nil {
@@ -145,21 +139,19 @@ func findFiles(args []string) []string {
 			files = append(files, f)
 		}
 	}
-	return files
+	return
 }
 
-func dirImages(dir string) []string {
-
+func dirImages(dir string) (files []string) {
 	fd, _ := os.Open(dir)
 	fs, _ := fd.Readdirnames(0)
-	files := []string{}
 	for _, f := range fs {
 		// TODO filter by regexp
 		if filepath.Ext(f) != "" {
 			files = append(files, filepath.Join(dir, f))
 		}
 	}
-	return files
+	return
 }
 
 type Img struct {
