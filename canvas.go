@@ -41,7 +41,7 @@ func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
 		if img.vimage == nil {
 			gos -= 1
 			sids := make([]int, 0, 10)
-			for y := idx+i; y < idx+i+10; y += procs {
+			for y := idx+i; y < len(imgs) && y < idx+i+10; y += procs {
 				if imgs[y].loading == false {
 					imgs[y].loading = true
 					sids = append(sids, y)
