@@ -1,0 +1,29 @@
+Bindings
+--------
+
+Planned keybindings.
+
+* h, l -> img prev, img next 
+* j, k -> down next, up prev # scroll until edge, then jump to next/prev image
+
+* a, w, s, d -> left, up, down, right
+
+* z -> zoom in
+* x -> zoom out
+
+* f -> zoom fit
+
+
+* r -> rotate right
+* R -> rotate left
+
+
+* ? -> help
+* : -> Comand line
+
+
+Bugs
+----
+
+- Unpredictable image order. Fixed?
+- Q binding requires another key press to work.

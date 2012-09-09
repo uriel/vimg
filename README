@@ -2,13 +2,9 @@ VImg
 ====
 
 
-A minimalistic image viewer written in Go with a vi(m) stile interface.
+A minimalist image viewer written in Go with a vi(m) stile user interface.
 
-The list of image formats supported is currently at the mercy of whatever is 
-supported by the Go standard library. Currently, those formats are png, jpg and 
-gif.
-
-Please see `vimg --help` for more options.
+See `vimg --help` for more options.
 
 Installation
 ------------
@@ -18,11 +14,22 @@ Installation
 Quick Usage
 -----------
 
-	vimg image.png image.gif image.jpg
+	vimg image.png folder/ image.gif image.jpg
 
 
 Dependencies
-============
-Go
-XGB
-xgbutil
+------------
+
+* Go
+* XGB
+* xgbutil
+
+
+XGB and xgbutil will be installed automagically by `go get`.
+
+
+Authors
+-------
+
+* Andrew Gallant (aka BurntSushi) - Original author of imgv.
+* Uriel (aka uriel) - Forked imgv to death and turned it into vimg, all bugs are my fault.
