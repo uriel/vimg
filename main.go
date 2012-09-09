@@ -42,16 +42,16 @@ var (
 	// sequence to bind to, the action to run when that key sequence is
 	// pressed and a quick description of what the keybinding does.
 	keybinds = []keyb{
-		{ "left", "Cycle to the previous image.", []string{"prev"} },
-		{ "right", "Cycle to the next image.", []string{"next"} },
-		{ "shift-h", "Cycle to the previous image.", []string{"prev"} },
-		{ "shift-l", "Cycle to the next image.", []string{"next"} },
-		{ "r", "Resize the window to fit the current image.", []string{"fit"} },
-		{ "h", "Pan left.", []string{"pan", "left"} },
-		{ "j", "Pan down.", []string{"pan", "down"} },
-		{ "k", "Pan up.", []string{"pan", "up"} },
-		{ "l", "Pan right.",[]string{"pan", "right"} },
-		{ "q", "Quit.", []string{"quit"} },
+		{"left", "Cycle to the previous image.", []string{"prev"}},
+		{"right", "Cycle to the next image.", []string{"next"}},
+		{"shift-h", "Cycle to the previous image.", []string{"prev"}},
+		{"shift-l", "Cycle to the next image.", []string{"next"}},
+		{"r", "Resize the window to fit the current image.", []string{"fit"}},
+		{"h", "Pan left.", []string{"pan", "left"}},
+		{"j", "Pan down.", []string{"pan", "down"}},
+		{"k", "Pan up.", []string{"pan", "up"}},
+		{"l", "Pan right.", []string{"pan", "right"}},
+		{"q", "Quit.", []string{"quit"}},
 	}
 )
 
@@ -163,11 +163,11 @@ func dirImages(dir string) []string {
 }
 
 type Img struct {
-	image  image.Image
-	name   string
-	load  chan *vimage 
+	image   image.Image
+	name    string
+	load    chan *vimage
 	loading bool // TODO: Maybe we should use a nil load chan instead
-	vimage *vimage
+	vimage  *vimage
 }
 
 func decodeFile(name string) (img image.Image, err error) {
@@ -180,11 +180,9 @@ func decodeFile(name string) (img image.Image, err error) {
 	start := time.Now()
 	img, kind, err := image.Decode(file)
 	if err != nil {
-		errLg.Printf("Could not decode '%s' into a supported image "+ "format: %s", name, err)
+		errLg.Printf("Could not decode '%s' into a supported image "+"format: %s", name, err)
 		return
 	}
 	lg("Decoded '%s' into image type '%s' (%s).", name, kind, time.Since(start))
-	return 
+	return
 }
-
-

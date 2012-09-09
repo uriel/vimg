@@ -18,8 +18,8 @@ import (
 
 // keyb represents a keybinding.
 type keyb struct {
-	key    string // key sequence
-	desc   string // description
+	key     string   // key sequence
+	desc    string   // description
 	command []string // commands to 'run'
 }
 
@@ -131,7 +131,7 @@ func (w *window) setupEventHandlers(chans chans) {
 
 	// And ask the canvas to draw the first image when it gets around to it.
 	go func() {
-		w.chans.ctl <-  []string{"pan", "NOWHERE"}
+		w.chans.ctl <- []string{"pan", "NOWHERE"}
 	}()
 
 	// Keep a state of window geometry.
@@ -164,7 +164,7 @@ func (w *window) setupEventHandlers(chans chans) {
 		keyb := keyb
 		err := keybind.KeyPressFun(
 			func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-				w.chans.ctl <-keyb.command
+				w.chans.ctl <- keyb.command
 			}).Connect(w.X, w.Id, keyb.key, false)
 		if err != nil {
 			errLg.Println(err)

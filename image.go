@@ -28,12 +28,12 @@ func newImage(X *xgbutil.XUtil, img *Img) {
 
 	// If we already loaded the image, don't reload it
 	select {
-	 	case vi := <- img.load:
-			img.load <- vi
-			return
-		default:
+	case vi := <-img.load:
+		img.load <- vi
+		return
+	default:
 	}
-	
+
 	im, err := decodeFile(img.name)
 	if err != nil {
 		img.load <- &vimage{nil, err}
@@ -73,10 +73,10 @@ func newImage(X *xgbutil.XUtil, img *Img) {
 
 	// Tell the canvas that this image has been loaded.
 	select {
-		case img.load <- &vimage{Image: reg, err: nil}:
-			return
-		default:
-			lg("LOADING already loaded img??! %v", img)
+	case img.load <- &vimage{Image: reg, err: nil}:
+		return
+	default:
+		lg("LOADING already loaded img??! %v", img)
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 
 // chans is a group of channels used to communicate with the canvas goroutine.
 type chans struct {
-
 	ctl chan []string
 
 	// The pan{Start,Step,End}Chan types facilitate panning. They correspond
@@ -28,7 +27,7 @@ func loader(X *xgbutil.XUtil, imgs []Img, idxs ...int) {
 			newImage(X, &imgs[i])
 			runtime.Gosched()
 		}
-	}	
+	}
 }
 
 func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
@@ -41,7 +40,7 @@ func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
 		if img.vimage == nil {
 			gos -= 1
 			sids := make([]int, 0, 10)
-			for y := idx+i; y < len(imgs) && y < idx+i+10; y += procs {
+			for y := idx + i; y < len(imgs) && y < idx+i+10; y += procs {
 				if imgs[y].loading == false {
 					imgs[y].loading = true
 					sids = append(sids, y)
@@ -61,13 +60,12 @@ func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
 func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 
 	chans := chans{
-		ctl:     make(chan []string, 0),
+		ctl: make(chan []string, 0),
 
 		panStartChan: make(chan image.Point, 0),
 		panStepChan:  make(chan image.Point, 0),
 		panEndChan:   make(chan image.Point, 0),
 	}
-
 
 	window.setupEventHandlers(chans)
 	current := 0
@@ -86,14 +84,12 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 
 		current = i
 
-		
-
 		img := &imgs[i]
 		lg("setImage %d, %v, %s", i, img.vimage, img.name)
 		if img.vimage == nil {
 			preload(X, imgs, i)
 			window.nameSet(fmt.Sprintf("%s - Loading... %d", img.name, i))
-			img.vimage = <- img.load
+			img.vimage = <-img.load
 		}
 
 		if img.vimage.err != nil {
