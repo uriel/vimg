@@ -12,7 +12,7 @@ import (
 // (The name is the basename of the image's corresponding file name.)
 type vimage struct {
 	*xgraphics.Image
-	name string
+	err error
 }
 
 // newImage is meant to be run as a goroutine and loads a decoded image into
@@ -24,17 +24,31 @@ type vimage struct {
 // is a smart decision.
 // Note that this process, particularly image conversion, can be quite
 // costly for large images.
-func newImage(X *xgbutil.XUtil, img Img, index int, imgChan chan imageLoaded) {
+func newImage(X *xgbutil.XUtil, img *Img) {
+
+	// If we already loaded the image, don't reload it
+	select {
+	 	case vi := <- img.load:
+			img.load <- vi
+			return
+		default:
+	}
+	
+	im, err := decodeFile(img.name)
+	if err != nil {
+		img.load <- &vimage{nil, err}
+		return
+	}
 
 	start := time.Now()
-	reg := xgraphics.NewConvert(X, img.image)
+	reg := xgraphics.NewConvert(X, im)
 	lg("Converted '%s' to an xgraphics.Image type (%s).", img.name, time.Since(start))
 
 	// Only blend a checkered background if the image *may* have an alpha 
 	// channel. If we want to be a bit more efficient, we could type switch
 	// on all image types use Opaque, but this may add undesirable overhead.
 	// (Where the overhead is scanning the image for opaqueness.)
-	switch img.image.(type) {
+	switch im.(type) {
 	case *image.Gray:
 	case *image.Gray16:
 	case *image.YCbCr:
@@ -58,7 +72,12 @@ func newImage(X *xgbutil.XUtil, img Img, index int, imgChan chan imageLoaded) {
 	lg("Drawn '%s' to an X pixmap (%s).", img.name, time.Since(start))
 
 	// Tell the canvas that this image has been loaded.
-	imgChan <- imageLoaded{index: index, img: &vimage{Image: reg, name: img.name}}
+	select {
+		case img.load <- &vimage{Image: reg, err: nil}:
+			return
+		default:
+			lg("LOADING already loaded img??! %v", img)
+	}
 }
 
 // blendCheckered is basically a copy of xgraphics.Blend with no interfaces.

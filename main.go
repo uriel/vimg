@@ -115,18 +115,19 @@ func main() {
 	// something is going on.
 	window := newWindow(X)
 
-	// Decode all images (in parallel).
-	imgs := decodeImages(findFiles(flag.Args()))
+	files := findFiles(flag.Args())
 
-	if len(imgs) == 0 {
+	if len(files) == 0 {
 		errLg.Fatal("No images specified could be shown.")
 	}
 
-	// Create the canvas and start the image goroutines.
-	chans := canvas(X, window, imgs)
-	for i, img := range imgs {
-		go newImage(X, img, i, chans.imgChan)
+	imgs := make([]Img, 0, len(files))
+	for _, name := range files {
+		imgs = append(imgs, Img{nil, name, make(chan *vimage, 1), false, nil})
 	}
+
+	// Create the canvas, this is the heart of the app
+	canvas(X, window, imgs)
 
 	// Start the main X event loop.
 	xevent.Main(X)
@@ -165,44 +166,25 @@ type Img struct {
 	image  image.Image
 	name   string
 	load  chan *vimage 
+	loading bool // TODO: Maybe we should use a nil load chan instead
 	vimage *vimage
 }
 
-// decodeImages takes a list of image files and decodes them into image.Image
-// types. Note that the number of images returned may not be the number of
-// image files passed in. Namely, an image file is skipped if it cannot be
-// read or deocoded into an image type that Go understands.
-func decodeImages(imageFiles []string) []Img {
-	imgChan := make(chan *Img)
-	for _, name := range imageFiles {
-		go func(fName string) {
-			file, err := os.Open(fName)
-			if err != nil {
-				errLg.Println(err)
-				imgChan <- nil
-				return
-			}
-
-			start := time.Now()
-			img, kind, err := image.Decode(file)
-			if err != nil {
-				errLg.Printf("Could not decode '%s' into a supported image "+ "format: %s", fName, err)
-				imgChan <- nil
-				return
-			}
-			lg("Decoded '%s' into image type '%s' (%s).", fName, kind, time.Since(start))
-
-			imgChan <- &Img{img, fName, nil, nil}
-		}(name)
+func decodeFile(name string) (img image.Image, err error) {
+	file, err := os.Open(name)
+	if err != nil {
+		errLg.Println(err)
+		return
 	}
 
-	imgs := make([]Img, 0, len(imageFiles))
-	// We should get as many imgs as names, failed ones will be 'nil'
-	for _ = range imageFiles {
-		if img := <-imgChan; img != nil {
-			imgs = append(imgs, *img)
-		}
+	start := time.Now()
+	img, kind, err := image.Decode(file)
+	if err != nil {
+		errLg.Printf("Could not decode '%s' into a supported image "+ "format: %s", name, err)
+		return
 	}
-
-	return imgs
+	lg("Decoded '%s' into image type '%s' (%s).", name, kind, time.Since(start))
+	return 
 }
+
+

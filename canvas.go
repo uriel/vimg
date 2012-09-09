@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"runtime"
 
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
@@ -10,11 +11,6 @@ import (
 
 // chans is a group of channels used to communicate with the canvas goroutine.
 type chans struct {
-	// imgChan is sent values whenever an image has finished loading.
-	// An image has finished loading when its been converted to an
-	// xgraphics.Image type, and an X pixmap with the image contents has been
-	// created.
-	imgChan chan imageLoaded
 
 	ctl chan []string
 
@@ -25,11 +21,38 @@ type chans struct {
 	panEndChan   chan image.Point
 }
 
-// imageLoaded is sent from each image generation goroutine when the image has
-// finished loading.
-type imageLoaded struct {
-	img   *vimage
-	index int
+func loader(X *xgbutil.XUtil, imgs []Img, idxs ...int) {
+	lg("Starting loader for idxs: %v", idxs)
+	for _, i := range idxs {
+		if i < len(imgs) {
+			newImage(X, &imgs[i])
+			runtime.Gosched()
+		}
+	}	
+}
+
+func preload(X *xgbutil.XUtil, imgs []Img, idx int) {
+	procs := runtime.GOMAXPROCS(-1)
+	gos := procs
+	for i, img := range imgs[idx:] {
+		if gos <= 0 {
+			return
+		}
+		if img.vimage == nil {
+			gos -= 1
+			sids := make([]int, 0, 10)
+			for y := idx+i; y < idx+i+10; y += procs {
+				if imgs[y].loading == false {
+					imgs[y].loading = true
+					sids = append(sids, y)
+				}
+			}
+			go loader(X, imgs, sids...)
+		}
+	}
+	return
+	// TODO: 'Garbage collect' far away images when memory starts to become low.
+	// TODO: preload also for when iterating backwards
 }
 
 // canvas is meant to be run as a single goroutine that maintains the state
@@ -38,7 +61,6 @@ type imageLoaded struct {
 func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 
 	chans := chans{
-		imgChan: make(chan imageLoaded, 0),
 		ctl:     make(chan []string, 0),
 
 		panStartChan: make(chan image.Point, 0),
@@ -63,27 +85,31 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 		}
 
 		current = i
-		if imgs[i].vimage == nil {
-			window.nameSet(fmt.Sprintf("%s - Loading...", imgs[i].name))
 
+		
+
+		img := &imgs[i]
+		lg("setImage %d, %v, %s", i, img.vimage, img.name)
+		if img.vimage == nil {
+			preload(X, imgs, i)
+			window.nameSet(fmt.Sprintf("%s - Loading... %d", img.name, i))
+			img.vimage = <- img.load
+		}
+
+		if img.vimage.err != nil {
+			window.nameSet(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
 			return
 		}
 
-		origin = originTrans(pt, window, imgs[current].vimage)
-		show(window, imgs[i].vimage, origin)
+		lg("XXXXXXXX setImage show() %d, %v, %d", i, img.vimage, len(img.load))
+		origin = originTrans(pt, window, img.vimage)
+		show(window, img, origin)
 	}
 
 	go func() {
 		panStart, panOrigin := image.Point{}, image.Point{}
 		for {
 			select {
-			case img := <-chans.imgChan:
-				imgs[img.index].vimage = img.img
-
-				// If this is the current image, show it!
-				if current == img.index {
-					show(window, imgs[current].vimage, origin)
-				}
 			case cmd := <-chans.ctl:
 				switch cmd[0] {
 				case "next":
@@ -114,6 +140,7 @@ func canvas(X *xgbutil.XUtil, window *window, imgs []Img) chans {
 					}
 					setImage(current, p)
 				case "quit":
+					lg("Quit!")
 					xevent.Quit(window.X)
 				}
 			case pt := <-chans.panStartChan:
@@ -170,21 +197,21 @@ func originTrans(pt image.Point, win *window, img *vimage) image.Point {
 // show translates the given origin point, paints the appropriate part of the
 // current image to the canvas, and sets the name of the window.
 // (Painting only paints the sub-image that is viewable.)
-func show(win *window, img *vimage, pt image.Point) {
+func show(win *window, img *Img, pt image.Point) {
 	// If there's no valid image, don't bother trying to show it.
 	// (We're hopefully loading the image now.)
-	if img == nil {
-		return
+	if img.vimage == nil {
+		panic("Should not happen!")
 	}
 
 	// Translate the origin to reflect the size of the image and canvas.
-	pt = originTrans(pt, win, img)
+	pt = originTrans(pt, win, img.vimage)
 
 	// Now paint the sub-image to the window.
-	win.paint(img.SubImage(image.Rect(pt.X, pt.Y,
+	win.paint(img.vimage.SubImage(image.Rect(pt.X, pt.Y,
 		pt.X+win.Geom.Width(), pt.Y+win.Geom.Height())))
 
 	// Always set the name of the window when we update it with a new image.
 	win.nameSet(fmt.Sprintf("%s (%dx%d)",
-		img.name, img.Bounds().Dx(), img.Bounds().Dy()))
+		img.name, img.vimage.Bounds().Dx(), img.vimage.Bounds().Dy()))
 }
