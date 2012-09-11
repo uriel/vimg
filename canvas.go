@@ -10,7 +10,7 @@ import (
 
 // chans is a group of channels used to communicate with the canvas goroutine.
 type chans struct {
-	ctl chan []string
+	ctl chan cmd
 
 	// The pan{Start,Step}Chan channels facilitate panning. They correspond
 	// to "drag start", "drag step"
@@ -62,7 +62,7 @@ func preload(win *window, imgs []Img, idx int) {
 // defined in the 'chans' type.
 func canvas(win *window, imgs []Img) chans {
 	chans := chans{
-		ctl: make(chan []string, 0),
+		ctl: make(chan cmd, 0),
 
 		panStartChan: make(chan image.Point, 0),
 		panStepChan:  make(chan image.Point, 0),
@@ -139,6 +139,10 @@ func canvas(win *window, imgs []Img) chans {
 				case "quit":
 					lg("Quit!")
 					xevent.Quit(win.X)
+				case "!":
+					runExternal(cmd.Args(), imgs[current].name)
+				default:
+					errLg.Printf("Unrecognized command: %v", cmd)
 				}
 			case pt := <-chans.panStartChan:
 				panStart = pt
@@ -152,7 +156,7 @@ func canvas(win *window, imgs []Img) chans {
 
 	// Draw first image. 
 	// If we always go FS we might not need this as we will get an X expose event.
-	chans.ctl <- []string{"pan", "NOWHERE"}
+	chans.ctl <- cmd{"pan", "NOWHERE"}
 
 	return chans
 }

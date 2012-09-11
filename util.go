@@ -2,8 +2,10 @@ package main
 
 import (
 	"image"
+	"io"
 	"log"
 	"os"
+	"os/exec"
 
 	"github.com/BurntSushi/xgbutil/xgraphics"
 )
@@ -50,4 +52,21 @@ func lg(format string, v ...interface{}) {
 		return
 	}
 	log.Printf(format, v...)
+}
+
+//
+
+func runExternal(cmds []string, img string) {
+	for i := range cmds {
+		if cmds[i] == "%" {
+			cmds[i] = img
+		}
+	}
+	errLg.Println(cmds)
+	c := exec.Command(cmds[0], cmds[1:]...)
+	er, _ := c.StderrPipe()
+	ou, _ := c.StdoutPipe()
+	c.Start()
+	go func() { io.Copy(os.Stdout, ou) }()
+	go func() { io.Copy(os.Stderr, er) }()
 }

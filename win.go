@@ -16,13 +16,6 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 )
 
-// keyb represents a keybinding.
-type keyb struct {
-	key     string   // key sequence
-	desc    string   // description
-	command []string // commands to 'run'
-}
-
 // window embeds an xwindow.Window value and all available channels used to
 // communicate with the canvas.
 // While the canvas and the window are essentialy the same, the canvas

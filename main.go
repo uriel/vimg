@@ -33,22 +33,6 @@ var (
 
 	// Print all keybindings and exit.
 	flagKeybindings bool
-
-	// A list of keybindings. Each value corresponds to a triple of the key
-	// sequence to bind to, the action to run when that key sequence is
-	// pressed and a quick description of what the keybinding does.
-	keybinds = []keyb{
-		{"left", "Cycle to the previous image.", []string{"prev"}},
-		{"right", "Cycle to the next image.", []string{"next"}},
-		{"shift-h", "Cycle to the previous image.", []string{"prev"}},
-		{"shift-l", "Cycle to the next image.", []string{"next"}},
-		{"r", "Resize the window to fit the current image.", []string{"fit"}},
-		{"h", "Pan left.", []string{"pan", "left"}},
-		{"j", "Pan down.", []string{"pan", "down"}},
-		{"k", "Pan up.", []string{"pan", "up"}},
-		{"l", "Pan right.", []string{"pan", "right"}},
-		{"q", "Quit.", []string{"quit"}},
-	}
 )
 
 func init() {
@@ -144,11 +128,15 @@ func findFiles(args []string) (files []string) {
 
 func dirImages(dir string) (files []string) {
 	fd, _ := os.Open(dir)
-	fs, _ := fd.Readdirnames(0)
+	fs, _ := fd.Readdir(0)
 	for _, f := range fs {
-		// TODO filter by regexp
-		if filepath.Ext(f) != "" {
-			files = append(files, filepath.Join(dir, f))
+		if f.IsDir() {
+			// TODO Maybe add a recursive flag?
+			lg("Not loading subdir: ", dir, f.Name())
+
+			// TODO filter by regexp
+		} else if filepath.Ext(f.Name()) != "" {
+			files = append(files, filepath.Join(dir, f.Name()))
 		}
 	}
 	return
