@@ -67,7 +67,7 @@ func (w *window) create() {
 	err = icccm.WmStateSet(w.X, w.Id, &icccm.WmState{
 		State: icccm.StateNormal,
 	})
-	if err != nil { // not a fatal error
+	if err != nil {
 		lg("Could not set WM_STATE: %s", err)
 	}
 
@@ -75,9 +75,14 @@ func (w *window) create() {
 	ewmh.WmStateSet(w.X, w.Id, []string{"_NET_WM_STATE_NORMAL"})
 
 	// Set the name to something.
-	w.nameSet("Decoding all images...")
+	w.nameSet("VImg")
 
 	w.Map()
+
+	err = ewmh.WmStateReq(w.X, w.Id, ewmh.StateToggle, "_NET_WM_STATE_FULLSCREEN")
+	if err != nil {
+		lg("Failed to go FullScreen:", err)
+	}
 }
 
 // paint uses the xgbutil/xgraphics package to copy the area corresponding
