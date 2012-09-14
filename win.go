@@ -16,8 +16,6 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 )
 
-// window embeds an xwindow.Window value and all available channels used to
-// communicate with the canvas.
 // While the canvas and the window are essentialy the same, the canvas
 // focuses on the abstraction of drawing some image into a viewport while the
 // window focuses on the more X related aspects of setting up the canvas.
@@ -25,11 +23,8 @@ type window struct {
 	*xwindow.Window
 }
 
-// newWndow creates a new window and dies on failure.
-// This includes mapping the window but not setting up the event handlers.
-// (The event handlers require the channels, and we don't create the channels
-// until all images have been decoded. But we want to show the window to the
-// user before that task is complete.)
+// newWindow creates the window, initializes the keybind and mousebind packages
+// and sets up the window to act like a real top-level client.
 func newWindow(X *xgbutil.XUtil) *window {
 	xwin, err := xwindow.Generate(X)
 	if err != nil {
@@ -37,19 +32,11 @@ func newWindow(X *xgbutil.XUtil) *window {
 	}
 
 	w := &window{xwin}
-	w.create()
 
-	return w
-}
-
-// create creates the window, initializes the keybind and mousebind packages
-// and sets up the window to act like a real top-level client.
-func (w *window) create() {
 	keybind.Initialize(w.X)
 	mousebind.Initialize(w.X)
 
-	err := w.CreateChecked(w.X.RootWin(), 0, 0, flagWidth, flagHeight,
-		xproto.CwBackPixel, 0xffffff)
+	err = w.CreateChecked(w.X.RootWin(), 0, 0, flagWidth, flagHeight, xproto.CwBackPixel, 0xffffff)
 	if err != nil {
 		errLg.Fatalf("Could not create window: %s", err)
 	}
@@ -64,17 +51,15 @@ func (w *window) create() {
 	})
 
 	// Set WM_STATE so it is interpreted as top-level and is mapped.
-	err = icccm.WmStateSet(w.X, w.Id, &icccm.WmState{
-		State: icccm.StateNormal,
-	})
+	err = icccm.WmStateSet(w.X, w.Id, &icccm.WmState{State: icccm.StateNormal})
 	if err != nil {
 		lg("Could not set WM_STATE: %s", err)
 	}
 
 	// _NET_WM_STATE = _NET_WM_STATE_NORMAL
-	ewmh.WmStateSet(w.X, w.Id, []string{"_NET_WM_STATE_NORMAL"})
+	// not needed because we we set FS later anyway?
+	//ewmh.WmStateSet(w.X, w.Id, []string{"_NET_WM_STATE_NORMAL"})
 
-	// Set the name to something.
 	w.nameSet("VImg")
 
 	w.Map()
@@ -83,6 +68,7 @@ func (w *window) create() {
 	if err != nil {
 		lg("Failed to go FullScreen:", err)
 	}
+	return w
 }
 
 // paint uses the xgbutil/xgraphics package to copy the area corresponding
@@ -90,8 +76,6 @@ func (w *window) create() {
 // before hand to try and avoid artifacts.
 func (w *window) paint(ximg *xgraphics.Image) {
 	dst := vpCenter(ximg, w.Geom.Width(), w.Geom.Height())
-	// UUU Commenting this out avoids flickering, and I see no artifacts!
-	// w.ClearAll() 
 	ximg.XExpPaint(w.Id, dst.X, dst.Y)
 }
 
@@ -113,8 +97,7 @@ func (w *window) nameSet(name string) {
 // Key events to perform various tasks when certain keys are pressed.
 func (w *window) setupEventHandlers(chans chans) {
 	w.Listen(xproto.EventMaskStructureNotify | xproto.EventMaskExposure |
-		xproto.EventMaskButtonPress | xproto.EventMaskButtonRelease |
-		xproto.EventMaskKeyPress)
+		xproto.EventMaskButtonPress | xproto.EventMaskButtonRelease | xproto.EventMaskKeyPress)
 
 	// Get the current geometry in case we don't get a ConfigureNotify event
 	// (or have already missed it).
@@ -144,14 +127,15 @@ func (w *window) setupEventHandlers(chans chans) {
 		func(X *xgbutil.XUtil, rx, ry, ex, ey int) {
 			chans.panStepChan <- image.Point{ex, ey}
 		},
+		// We do nothing on mouse release
 		func(X *xgbutil.XUtil, rx, ry, ex, ey int) { return })
 
-	for _, keyb := range keybinds {
-		keyb := keyb
+	for _, kb := range keybinds {
+		k := kb // Needed because the callback closure will capture kb
 		err := keybind.KeyPressFun(
 			func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
-				chans.ctl <- keyb.command
-			}).Connect(w.X, w.Id, keyb.key, false)
+				chans.ctl <- k.command
+			}).Connect(w.X, w.Id, k.key, false)
 		if err != nil {
 			errLg.Println(err)
 		}

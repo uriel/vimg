@@ -2,13 +2,12 @@ package main
 
 type cmd []string
 
-func (c cmd) Args() []string {
-	args := []string{}
+func (c cmd) Args() (args []string) {
 	c = c[1:]
 	for i := range c {
 		args = append(args, c[i])
 	}
-	return args
+	return
 }
 
 // keyb represents a keybinding.
