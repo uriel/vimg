@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image"
-	"math/rand"
 	"runtime"
 
 	"github.com/BurntSushi/xgbutil/xevent"
@@ -17,54 +16,59 @@ type chans struct {
 	panStepChan  chan image.Point
 }
 
+func load(win *window, im *Img) {
+	if im.vimage != nil {
+		return
+	}
+	// Skip image if already loaded.
+	select {
+	case vi := <-im.load:
+		im.load <- vi
+		return
+	default:
+	}
+
+	v := newImage(win, im)
+
+	// Tell the canvas that this image has been loaded.
+	select {
+	case im.load <- v:
+	default:
+		lg("XXXX Somebody else loaded img faster than us! %v", im)
+	}
+}
+
 func loader(win *window, imgs chan *Img) {
 	for im := range imgs {
-		// Skip image if already loaded.
-		select {
-		case vi := <-im.load:
-			im.load <- vi
-			continue
-		default:
-		}
-
-		v := newImage(win, im)
-
-		// Tell the canvas that this image has been loaded.
-		select {
-		case im.load <- v:
-		default:
-			lg("Somebody else loaded img faster than us! %v", im)
-		}
-
+		load(win, im)
 		runtime.Gosched()
 	}
 }
 
-var preloaders []chan *Img
+var preloaders chan *Img
 
-const LoaderSize = 32
+const PreloadQueueSize = 32
 
 func preload(win *window, imgs []Img, idx int) {
 
 	if preloaders == nil {
-		preloaders = make([]chan *Img, runtime.NumCPU())
-		for i, _ := range preloaders {
-			preloaders[i] = make(chan *Img, LoaderSize)
-			go loader(win, preloaders[i])
+		preloaders = make(chan *Img, PreloadQueueSize)
+		for i := 0; i < runtime.NumCPU(); i++ {
+			go loader(win, preloaders)
 		}
 	}
 
-	for i := 0; i <= LoaderSize*len(preloaders) && i+idx < len(imgs); i++ {
+	// TODO: Should wrap arround!
+	// TODO: Replace FIFO with "priority queue" based on distance from idx
+	for i := 0; i <= PreloadQueueSize && i+idx < len(imgs); i++ {
 		img := &imgs[i+idx]
 		if img.vimage == nil && img.loading == false {
-		loop:
-			for _, j := range rand.Perm(len(preloaders)) {
-				select {
-				case preloaders[j] <- img:
-					imgs[i+idx].loading = true
-					break loop
-				default:
-				}
+			select {
+			case preloaders <- img:
+				img.loading = true
+			default:
+				// Preload queue full
+				break
 			}
 		}
 	}
@@ -77,7 +81,7 @@ func preload(win *window, imgs []Img, idx int) {
 // canvas is meant to be run as a single goroutine that maintains the state
 // of the image viewer. It manipulates state by reading values from the channels
 // defined in the 'chans' type.
-func canvas(win *window, imgs []Img) chans {
+func canvas(win *window, imgs []Img) {
 	chans := chans{
 		ctl: make(chan cmd, 0),
 
@@ -103,21 +107,25 @@ func canvas(win *window, imgs []Img) chans {
 		current = i
 
 		img := &imgs[i]
-		lg("setImage %d, %v, %s", i, img.vimage, img.name)
+		//lg("setImage %d, %v, %s", i, img.vimage, img.name)
 		if img.vimage == nil {
-			preload(win, imgs, i)
 			win.nameSet(fmt.Sprintf("%s - Loading... %d", img.name, i))
+			// TODO Maybe we should check if a preloader is already working on this image.
+			img.loading = true
+			load(win, img)
 			img.vimage = <-img.load
 		}
 
 		if img.vimage.err != nil {
 			win.nameSet(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
+			// Should we call preload() anyway?
 			return
 		}
 
 		lg("setImage show() %d, %v, %d", i, img.vimage, len(img.load))
 		origin = originTrans(pt, win, img.vimage)
 		show(win, img, origin)
+		preload(win, imgs, i+1)
 	}
 
 	go func() {
@@ -174,8 +182,6 @@ func canvas(win *window, imgs []Img) chans {
 	// Draw first image. 
 	// If we always go FS we might not need this as we will get an X expose event.
 	chans.ctl <- cmd{"pan", "NOWHERE"}
-
-	return chans
 }
 
 // originTrans translates the origin with respect to the current image and the
