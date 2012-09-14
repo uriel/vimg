@@ -35,34 +35,34 @@ func loader(win *window, imgs chan *Img) {
 		select {
 		case im.load <- v:
 		default:
-			lg("LOADING already loaded img! %v", im)
+			lg("Somebody else loaded img faster than us! %v", im)
 		}
 
 		runtime.Gosched()
 	}
 }
 
-var loaders []chan *Img
+var preloaders []chan *Img
 
-const LoaderSize = 8
+const LoaderSize = 32
 
 func preload(win *window, imgs []Img, idx int) {
 
-	if loaders == nil {
-		loaders = make([]chan *Img, runtime.NumCPU())
-		for i, _ := range loaders {
-			loaders[i] = make(chan *Img, LoaderSize)
-			go loader(win, loaders[i])
+	if preloaders == nil {
+		preloaders = make([]chan *Img, runtime.NumCPU())
+		for i, _ := range preloaders {
+			preloaders[i] = make(chan *Img, LoaderSize)
+			go loader(win, preloaders[i])
 		}
 	}
 
-	for i := 0; i <= LoaderSize*len(loaders) && i+idx < len(imgs); i++ {
+	for i := 0; i <= LoaderSize*len(preloaders) && i+idx < len(imgs); i++ {
 		img := &imgs[i+idx]
 		if img.vimage == nil && img.loading == false {
 		loop:
-			for _, j := range rand.Perm(len(loaders)) {
+			for _, j := range rand.Perm(len(preloaders)) {
 				select {
-				case loaders[j] <- img:
+				case preloaders[j] <- img:
 					imgs[i+idx].loading = true
 					break loop
 				default:

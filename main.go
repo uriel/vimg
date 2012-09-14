@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
-	"time"
 
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/xevent"
