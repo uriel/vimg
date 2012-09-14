@@ -9,12 +9,10 @@ import (
 	"github.com/BurntSushi/xgbutil/xevent"
 )
 
-// chans is a group of channels used to communicate with the canvas goroutine.
 type chans struct {
 	ctl chan cmd
 
-	// The pan{Start,Step}Chan channels facilitate panning. They correspond
-	// to "drag start", "drag step"
+	// The pan{Start,Step}Chan channels for "drag start", "drag step".
 	panStartChan chan image.Point
 	panStepChan  chan image.Point
 }
