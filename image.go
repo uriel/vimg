@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"os"
 	"time"
 
 	"github.com/BurntSushi/xgbutil/xgraphics"
@@ -23,25 +24,25 @@ type vimage struct {
 // is a smart decision.
 // Note that this process, particularly image conversion, can be quite
 // costly for large images.
-func newImage(win *window, img *Img) {
+func newImage(win *window, img *Img) *vimage {
 
-	// If we already loaded the image, do nothing.
-	select {
-	case vi := <-img.load:
-		img.load <- vi
-		return
-	default:
-	}
-
-	im, err := decodeFile(img.name)
+	start := time.Now()
+	file, err := os.Open(img.name)
 	if err != nil {
-		img.load <- &vimage{nil, err}
-		return
+		errLg.Println(err)
+		return &vimage{nil, err}
 	}
+
+	im, kind, err := image.Decode(file)
+	if err != nil {
+		errLg.Printf("Could not decode '%s' into a supported image "+"format: %s", img.name, err)
+		return &vimage{nil, err}
+	}
+	lg("Decoded '%s' into image type '%s' (%s).", img.name, kind, time.Since(start))
 
 	// im = scale(im, win.Geom.Width(), win.Geom.Height())
 
-	start := time.Now()
+	start = time.Now()
 	reg := xgraphics.NewConvert(win.X, im)
 	lg("Converted '%s' to an xgraphics.Image type (%s).", img.name, time.Since(start))
 
@@ -59,7 +60,7 @@ func newImage(win *window, img *Img) {
 		lg("Blended '%s' into a checkered background (%s).", img.name, time.Since(start))
 	}
 
-	if err := reg.CreatePixmap(); err != nil {
+	if err = reg.CreatePixmap(); err != nil {
 		// TODO: We should display a "Could not load image" image instead
 		// of dying. However, creating a pixmap rarely fails, unless we have
 		// a *ton* of images. (In all likelihood, we'll run out of memory
@@ -71,12 +72,7 @@ func newImage(win *window, img *Img) {
 	reg.XDraw()
 	lg("Drawn '%s' to an X pixmap (%s).", img.name, time.Since(start))
 
-	// Tell the canvas that this image has been loaded.
-	select {
-	case img.load <- &vimage{Image: reg, err: nil}:
-	default:
-		lg("LOADING already loaded img! %v", img)
-	}
+	return &vimage{reg, err}
 }
 
 // blendCheckered is basically a copy of xgraphics.Blend with no interfaces.

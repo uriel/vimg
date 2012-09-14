@@ -25,5 +25,6 @@ Planned keybindings.
 Bugs
 ----
 
-- Unpredictable image order. Fixed?
+- If somehow you jump to a non-preloaded image (forwarding fast or going backwards from the first img for example),
+  we have no way to push it to the top of (pr)eload channel.
 - Q binding requires another key press to work.

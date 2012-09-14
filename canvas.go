@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	"math/rand"
 	"runtime"
 
 	"github.com/BurntSushi/xgbutil/xevent"
@@ -20,30 +21,48 @@ type chans struct {
 
 func loader(win *window, imgs chan *Img) {
 	for im := range imgs {
-		newImage(win, im)
+		// Skip image if already loaded.
+		select {
+		case vi := <-im.load:
+			im.load <- vi
+			continue
+		default:
+		}
+
+		v := newImage(win, im)
+
+		// Tell the canvas that this image has been loaded.
+		select {
+		case im.load <- v:
+		default:
+			lg("LOADING already loaded img! %v", im)
+		}
+
 		runtime.Gosched()
 	}
 }
 
 var loaders []chan *Img
 
+const LoaderSize = 8
+
 func preload(win *window, imgs []Img, idx int) {
 
 	if loaders == nil {
 		loaders = make([]chan *Img, runtime.NumCPU())
 		for i, _ := range loaders {
-			loaders[i] = make(chan *Img, 32)
+			loaders[i] = make(chan *Img, LoaderSize)
 			go loader(win, loaders[i])
 		}
 	}
 
-	for i := 0; i <= 32*len(loaders) && i+idx < len(imgs); i++ {
+	for i := 0; i <= LoaderSize*len(loaders) && i+idx < len(imgs); i++ {
 		img := &imgs[i+idx]
 		if img.vimage == nil && img.loading == false {
 		loop:
-			for _, l := range loaders {
+			for _, j := range rand.Perm(len(loaders)) {
 				select {
-				case l <- img:
+				case loaders[j] <- img:
 					imgs[i+idx].loading = true
 					break loop
 				default:

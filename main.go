@@ -149,20 +149,3 @@ type Img struct {
 	loading bool // TODO: Maybe we should use a nil load chan instead
 	vimage  *vimage
 }
-
-func decodeFile(name string) (img image.Image, err error) {
-	file, err := os.Open(name)
-	if err != nil {
-		errLg.Println(err)
-		return
-	}
-
-	start := time.Now()
-	img, kind, err := image.Decode(file)
-	if err != nil {
-		errLg.Printf("Could not decode '%s' into a supported image "+"format: %s", name, err)
-		return
-	}
-	lg("Decoded '%s' into image type '%s' (%s).", name, kind, time.Since(start))
-	return
-}
