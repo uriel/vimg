@@ -1,5 +1,7 @@
 package main
 
+const panIncrement = 20 // Increment (in pixels) used to pan the image.
+
 type cmd []string
 
 func (c cmd) Args() (args []string) {

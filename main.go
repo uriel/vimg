@@ -21,17 +21,8 @@ var (
 	// When flagVerbose is true, logging output will be written to stderr.
 	flagVerbose bool
 
-	// The initial width and height of the window.
-	flagWidth, flagHeight int
-
-	// The amount to increment panning when using h,j,k,l
-	flagStepIncrement int
-
 	// Whether to run a CPU profile.
 	flagProfile string
-
-	// Print all keybindings and exit.
-	flagKeybindings bool
 )
 
 func init() {
@@ -40,33 +31,24 @@ func init() {
 	log.SetPrefix("[VImg] ")
 
 	flag.BoolVar(&flagVerbose, "v", false, "Print logging output to stderr.")
-	flag.IntVar(&flagWidth, "width", 600, "Initial window width.")
-	flag.IntVar(&flagHeight, "height", 600, "Initial window.")
-	flag.IntVar(&flagStepIncrement, "increment", 20, "Increment (in pixels) used to pan the image.")
 	flag.StringVar(&flagProfile, "profile", "", "Save CPU profile to the file name provided.")
-	flag.BoolVar(&flagKeybindings, "keybindings", false, "Output a list all keybindings.")
 	flag.Usage = usage
 	flag.Parse()
-
-	if flagWidth == 0 || flagHeight == 0 {
-		errLg.Fatal("The width and height must be non-zero values.")
-	}
 }
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: vimg [flags] image-file [image-file ...]\n")
 	flag.PrintDefaults()
+
+	for _, keyb := range keybinds {
+		fmt.Printf("%-10s %s\n", keyb.key, keyb.desc)
+	}
+	fmt.Printf("%-10s %s\n", "mouse", "Left mouse button will pan the image.")
+
 	os.Exit(2)
 }
 
 func main() {
-	if flagKeybindings {
-		for _, keyb := range keybinds {
-			fmt.Printf("%-10s %s\n", keyb.key, keyb.desc)
-		}
-		fmt.Printf("%-10s %s\n", "mouse", "Left mouse button will pan the image.")
-		os.Exit(0)
-	}
 
 	if flagProfile != "" {
 		f, err := os.Create(flagProfile)

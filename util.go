@@ -43,15 +43,13 @@ func max(a, b int) int {
 }
 
 // Logging
-
 var errLg = log.New(os.Stderr, "[vimg error] ", log.Lshortfile)
 
 // lg is a convenient alias for printing verbose output.
 func lg(format string, v ...interface{}) {
-	if !flagVerbose {
-		return
+	if flagVerbose {
+		log.Printf(format, v...)
 	}
-	log.Printf(format, v...)
 }
 
 //

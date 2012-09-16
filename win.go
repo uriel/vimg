@@ -36,7 +36,7 @@ func newWindow(X *xgbutil.XUtil) *window {
 	keybind.Initialize(w.X)
 	mousebind.Initialize(w.X)
 
-	err = w.CreateChecked(w.X.RootWin(), 0, 0, flagWidth, flagHeight, xproto.CwBackPixel, 0xffffff)
+	err = w.CreateChecked(w.X.RootWin(), 0, 0, 600, 600, xproto.CwBackPixel, 0xffffff)
 	if err != nil {
 		errLg.Fatalf("Could not create window: %s", err)
 	}

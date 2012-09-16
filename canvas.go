@@ -148,15 +148,15 @@ func canvas(win *window, imgs []Img) {
 					p := image.Point{}
 					switch cmd[1] {
 					case "left":
-						p = image.Point{origin.X - flagStepIncrement, origin.Y}
+						p = image.Point{origin.X - panIncrement, origin.Y}
 					case "right":
-						p = image.Point{origin.X + flagStepIncrement, origin.Y}
+						p = image.Point{origin.X + panIncrement, origin.Y}
 
 					// up and down are reversed, X origin is the top-left corner
 					case "up":
-						p = image.Point{origin.X, origin.Y - flagStepIncrement}
+						p = image.Point{origin.X, origin.Y - panIncrement}
 					case "down":
-						p = image.Point{origin.X, origin.Y + flagStepIncrement}
+						p = image.Point{origin.X, origin.Y + panIncrement}
 					case "origin":
 						p = origin
 					}
