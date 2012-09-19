@@ -115,9 +115,11 @@ func canvas(win *window, imgs []Img, chans chans) {
 				setImage(current - 1)
 
 			// resize the window to fit the current image.
-			case "fit":
-				b := imgs[current].vimage.Bounds()
-				win.Resize(b.Dx(), b.Dy())
+			// Not needed since we are always full screen
+			// and if we arent fs, resize maybe should be automatic
+			//case "fit":
+			//	b := imgs[current].vimage.Bounds()
+			//	win.Resize(b.Dx(), b.Dy())
 			case "pan":
 				switch cmd[1] {
 				case "left":

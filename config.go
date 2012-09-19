@@ -29,7 +29,7 @@ var keybinds = []keyb{
 	{"shift-h", cmd{"prev"}, "Cycle to the previous image."},
 	{"shift-l", cmd{"next"}, "Cycle to the next image."},
 
-	{"r", cmd{"fit"}, "Resize the window to fit the current image."},
+	//{"r", cmd{"fit"}, "Resize the window to fit the current image."},
 	{"shift-r", cmd{"!", "mv", "%", ".trash/"}, "Move file to .trash/."},
 
 	{"h", cmd{"pan", "left"}, "Pan left."},
