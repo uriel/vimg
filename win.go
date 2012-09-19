@@ -19,9 +19,7 @@ import (
 // While the canvas and the window are essentialy the same, the canvas
 // focuses on the abstraction of drawing some image into a viewport while the
 // window focuses on the more X related aspects of setting up the canvas.
-type window struct {
-	*xwindow.Window
-}
+type window struct{ *xwindow.Window }
 
 // newWindow creates the window, initializes the keybind and mousebind packages
 // and sets up the window to act like a real top-level client.
@@ -60,7 +58,7 @@ func newWindow(X *xgbutil.XUtil) *window {
 	// not needed because we we set FS later anyway?
 	//ewmh.WmStateSet(w.X, w.Id, []string{"_NET_WM_STATE_NORMAL"})
 
-	w.nameSet("VImg")
+	w.setName("VImg")
 
 	w.Map()
 
@@ -79,10 +77,8 @@ func (w *window) paint(ximg *xgraphics.Image) {
 	ximg.XExpPaint(w.Id, dst.X, dst.Y)
 }
 
-// nameSet will set the name of the window and emit a benign message to
-// verbose output if it fails.
-func (w *window) nameSet(name string) {
-	// Set _NET_WM_NAME so it looks nice.
+// setName will set the name of the window
+func (w *window) setName(name string) {
 	err := ewmh.WmNameSet(w.X, w.Id, fmt.Sprintf("vimg :: %s", name))
 	if err != nil { // not a fatal error
 		lg("Could not set _NET_WM_NAME: %s", err)

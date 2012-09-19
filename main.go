@@ -7,7 +7,6 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,20 +17,15 @@ import (
 )
 
 var (
-	// When flagVerbose is true, logging output will be written to stderr.
 	flagVerbose bool
-
-	// Whether to run a CPU profile.
 	flagProfile string
 )
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	log.SetPrefix("[VImg] ")
-
 	flag.BoolVar(&flagVerbose, "v", false, "Print logging output to stderr.")
-	flag.StringVar(&flagProfile, "profile", "", "Save CPU profile to the file name provided.")
+	flag.StringVar(&flagProfile, "profile", "", "Save CPU profile to the given file.")
 	flag.Usage = usage
 	flag.Parse()
 }
@@ -40,10 +34,11 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: vimg [flags] image-file [image-file ...]\n")
 	flag.PrintDefaults()
 
+	fmt.Print("\nControls:\n\n")
 	for _, keyb := range keybinds {
 		fmt.Printf("%-10s %s\n", keyb.key, keyb.desc)
 	}
-	fmt.Printf("%-10s %s\n", "mouse", "Left mouse button will pan the image.")
+	fmt.Printf("%-10s %s\n", "mouse", "Left mouse button will pan the image.\n")
 
 	os.Exit(2)
 }
@@ -60,7 +55,6 @@ func main() {
 	}
 
 	if flag.NArg() == 0 {
-		fmt.Fprint(os.Stderr, "\n")
 		errLg.Print("No images specified.\n\n")
 		usage()
 	}
@@ -83,11 +77,22 @@ func main() {
 
 	imgs := make([]Img, 0, len(files))
 	for _, name := range files {
-		imgs = append(imgs, Img{nil, name, make(chan *vimage, 1), false, nil})
+		imgs = append(imgs, Img{name, make(chan *vimage, 1), false, nil})
 	}
 
+	chans := chans{
+		ctl: make(chan cmd, 0),
+
+		panStartChan: make(chan image.Point, 0),
+		panStepChan:  make(chan image.Point, 0),
+	}
+	window.setupEventHandlers(chans)
 	// Create the canvas, this is the heart of the app
-	canvas(window, imgs)
+	go canvas(window, imgs, chans)
+
+	// Draw first image. 
+	// If we always go FS maybe we don't need this as we will get an X expose event.
+	chans.ctl <- cmd{"pan", "origin"}
 
 	// Start the main X event loop.
 	xevent.Main(X)
@@ -112,8 +117,8 @@ func dirImages(dir string) (files []string) {
 	fs, _ := fd.Readdir(0)
 	for _, f := range fs {
 		if f.IsDir() {
-			// TODO Maybe add a recursive flag?
-			lg("Not loading subdir: ", dir, f.Name())
+			// For now ignore directories
+			// Maybe we should add a recursive flag?
 
 			// TODO filter by regexp
 		} else if filepath.Ext(f.Name()) != "" {
@@ -121,12 +126,4 @@ func dirImages(dir string) (files []string) {
 		}
 	}
 	return
-}
-
-type Img struct {
-	image   image.Image
-	name    string
-	load    chan *vimage
-	loading bool // TODO: Maybe we should use a nil load chan instead
-	vimage  *vimage
 }

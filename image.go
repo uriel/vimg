@@ -8,11 +8,18 @@ import (
 	"github.com/BurntSushi/xgbutil/xgraphics"
 )
 
+type Img struct {
+	name    string
+	load    chan *vimage
+	loading bool // Maybe we should use a nil load chan instead?
+	vimage  *vimage
+}
+
 // vimage acts as an xgraphics.Image type with a name.
 // (The name is the basename of the image's corresponding file name.)
 type vimage struct {
 	*xgraphics.Image
-	err error
+	err error // Nil unless there is an error loading or decoding the image.
 }
 
 // newImage loads a decodes an image into an xgraphics.Image value and draws it
@@ -22,13 +29,13 @@ func newImage(win *window, img *Img) *vimage {
 	start := time.Now()
 	file, err := os.Open(img.name)
 	if err != nil {
-		errLg.Println(err)
+		errLg.Printf("Error opening '%s': %s", img.name, err)
 		return &vimage{nil, err}
 	}
 
 	im, kind, err := image.Decode(file)
 	if err != nil {
-		errLg.Printf("Could not decode '%s' into a supported image "+"format: %s", img.name, err)
+		errLg.Printf("Error decoding '%s': %s", img.name, err)
 		return &vimage{nil, err}
 	}
 	lg("Decoded '%s' into image type '%s' (%s).", img.name, kind, time.Since(start))
@@ -50,7 +57,7 @@ func newImage(win *window, img *Img) *vimage {
 	default:
 		start = time.Now()
 		blendCheckered(reg)
-		lg("Blended '%s' into a checkered background (%s).", img.name, time.Since(start))
+		lg("Blended '%s' into checkered background (%s).", img.name, time.Since(start))
 	}
 
 	if err = reg.CreatePixmap(); err != nil {
@@ -61,9 +68,7 @@ func newImage(win *window, img *Img) *vimage {
 		errLg.Fatal(err)
 	}
 
-	start = time.Now()
 	reg.XDraw()
-	lg("Drawn '%s' to an X pixmap (%s).", img.name, time.Since(start))
 
 	return &vimage{reg, err}
 }
