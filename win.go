@@ -73,8 +73,21 @@ func newWindow(X *xgbutil.XUtil) *window {
 // to ximg in its pixmap to the window. It will also issue a clear request
 // before hand to try and avoid artifacts.
 func (w *window) paint(ximg *xgraphics.Image) {
-	dst := vpCenter(ximg, w.Geom.Width(), w.Geom.Height())
-	ximg.XExpPaint(w.Id, dst.X, dst.Y)
+
+	// If the image is bigger than the canvas, this is always (0, 0).
+	// If the image is the same size, then it is also (0, 0).
+	// If a dimension of the image is smaller than the canvas, then:
+	// x = (canvas_width - image_width) / 2 and
+	// y = (canvas_height - image_height) / 2
+	xmargin, ymargin := 0, 0
+	if ximg.Bounds().Dx() < w.Geom.Width() {
+		xmargin = (w.Geom.Width() - ximg.Bounds().Dx()) / 2
+	}
+	if ximg.Bounds().Dy() < w.Geom.Height() {
+		ymargin = (w.Geom.Height() - ximg.Bounds().Dy()) / 2
+	}
+
+	ximg.XExpPaint(w.Id, xmargin, ymargin)
 }
 
 // setName will set the name of the window
