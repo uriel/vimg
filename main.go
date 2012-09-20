@@ -7,6 +7,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -113,8 +114,7 @@ func findFiles(args []string) (files []string) {
 }
 
 func dirImages(dir string) (files []string) {
-	fd, _ := os.Open(dir)
-	fs, _ := fd.Readdir(0)
+	fs, _ := ioutil.ReadDir(dir)
 	for _, f := range fs {
 		if f.IsDir() {
 			// For now ignore directories
