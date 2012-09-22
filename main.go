@@ -88,15 +88,12 @@ func main() {
 
 	// Create the X window before starting anything so that the user knows
 	// something is going on.
-	window := newWindow(X)
+	window = newWindow(X)
 	window.setName("VImg")
 	window.setupEventHandlers(chans)
+
 	// Create the canvas, this is the heart of the app
 	go canvas(imgs, chans)
-
-	// Draw first image. 
-	// If we always go FS maybe we don't need this as we will get an X expose event.
-	chans.ctl <- cmd{"pan", "origin"}
 
 	// Start the main X event loop.
 	xevent.Main(X)

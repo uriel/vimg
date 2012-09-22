@@ -103,6 +103,9 @@ func canvas(imgs []Img, chans chans) {
 		preload(imgs, i+1)
 	}
 
+	// Display first image, and start preloading
+	setImage(current)
+
 	panStart, panOrigin := image.Point{}, image.Point{}
 	for {
 		select {
