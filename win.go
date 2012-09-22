@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 
 	"github.com/BurntSushi/xgb/xproto"
@@ -19,17 +18,15 @@ import (
 // While the canvas and the window are essentialy the same, the canvas
 // focuses on the abstraction of drawing some image into a viewport while the
 // window focuses on the more X related aspects of setting up the canvas.
-type window struct{ *xwindow.Window }
+type Window struct{ *xwindow.Window }
 
 // newWindow creates the window, initializes the keybind and mousebind packages
 // and sets up the window to act like a real top-level client.
-func newWindow(X *xgbutil.XUtil) *window {
-	xwin, err := xwindow.Generate(X)
+func newWindow(X *xgbutil.XUtil) *Window {
+	w, err := xwindow.Generate(X)
 	if err != nil {
 		errLg.Fatalf("Could not create window: %s", err)
 	}
-
-	w := &window{xwin}
 
 	keybind.Initialize(w.X)
 	mousebind.Initialize(w.X)
@@ -58,21 +55,19 @@ func newWindow(X *xgbutil.XUtil) *window {
 	// not needed because we we set FS later anyway?
 	//ewmh.WmStateSet(w.X, w.Id, []string{"_NET_WM_STATE_NORMAL"})
 
-	w.setName("VImg")
-
 	w.Map()
 
 	err = ewmh.WmStateReq(w.X, w.Id, ewmh.StateToggle, "_NET_WM_STATE_FULLSCREEN")
 	if err != nil {
 		lg("Failed to go FullScreen:", err)
 	}
-	return w
+	return &Window{w}
 }
 
 // paint uses the xgbutil/xgraphics package to copy the area corresponding
 // to ximg in its pixmap to the window. It will also issue a clear request
 // before hand to try and avoid artifacts.
-func (w *window) paint(ximg *xgraphics.Image) {
+func (w *Window) paint(ximg *xgraphics.Image) {
 
 	// If the image is bigger than the canvas, this is always (0, 0).
 	// If the image is the same size, then it is also (0, 0).
@@ -91,8 +86,8 @@ func (w *window) paint(ximg *xgraphics.Image) {
 }
 
 // setName will set the name of the window
-func (w *window) setName(name string) {
-	err := ewmh.WmNameSet(w.X, w.Id, fmt.Sprintf("vimg :: %s", name))
+func (w *Window) setName(name string) {
+	err := ewmh.WmNameSet(w.X, w.Id, "vimg :: "+name)
 	if err != nil { // not a fatal error
 		lg("Could not set _NET_WM_NAME: %s", err)
 	}
@@ -104,7 +99,7 @@ func (w *window) setName(name string) {
 // Expose events will cause the window to repaint the current image.
 // Button events to allow panning.
 // Key events to perform various tasks when certain keys are pressed.
-func (w *window) setupEventHandlers(chans chans) {
+func (w *Window) setupEventHandlers(chans chans) {
 	w.Listen(xproto.EventMaskStructureNotify | xproto.EventMaskExposure |
 		xproto.EventMaskButtonPress | xproto.EventMaskButtonRelease | xproto.EventMaskKeyPress)
 

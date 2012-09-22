@@ -20,6 +20,8 @@ import (
 var (
 	flagVerbose bool
 	flagProfile string
+
+	window *Window
 )
 
 func init() {
@@ -66,10 +68,6 @@ func main() {
 		errLg.Fatal(err)
 	}
 
-	// Create the X window before starting anything so that the user knows
-	// something is going on.
-	window := newWindow(X)
-
 	files := findFiles(flag.Args())
 
 	if len(files) == 0 {
@@ -87,9 +85,14 @@ func main() {
 		panStartChan: make(chan image.Point, 0),
 		panStepChan:  make(chan image.Point, 0),
 	}
+
+	// Create the X window before starting anything so that the user knows
+	// something is going on.
+	window := newWindow(X)
+	window.setName("VImg")
 	window.setupEventHandlers(chans)
 	// Create the canvas, this is the heart of the app
-	go canvas(window, imgs, chans)
+	go canvas(imgs, chans)
 
 	// Draw first image. 
 	// If we always go FS maybe we don't need this as we will get an X expose event.

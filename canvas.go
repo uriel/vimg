@@ -15,7 +15,7 @@ type chans struct {
 	panStepChan  chan image.Point
 }
 
-func load(win *window, im *Img) {
+func load(im *Img) {
 	if im.vimage != nil {
 		return
 	}
@@ -27,7 +27,7 @@ func load(win *window, im *Img) {
 	default:
 	}
 
-	v := newImage(win, im)
+	v := newImage(im)
 
 	// Tell the canvas that this image has been loaded.
 	select {
@@ -37,9 +37,9 @@ func load(win *window, im *Img) {
 	}
 }
 
-func loader(win *window, imgs chan *Img) {
+func loader(imgs chan *Img) {
 	for im := range imgs {
-		load(win, im)
+		load(im)
 		runtime.Gosched()
 	}
 }
@@ -48,12 +48,12 @@ var preloaders chan *Img
 
 const PreloadQueueSize = 32
 
-func preload(win *window, imgs []Img, idx int) {
+func preload(imgs []Img, idx int) {
 
 	if preloaders == nil {
 		preloaders = make(chan *Img, PreloadQueueSize)
 		for i := 0; i < runtime.NumCPU(); i++ {
-			go loader(win, preloaders)
+			go loader(preloaders)
 		}
 	}
 
@@ -80,7 +80,7 @@ func preload(win *window, imgs []Img, idx int) {
 // canvas is meant to be run as goroutine that maintains the state of the image
 // viewer. It manipulates state by reading values from the channels defined in
 // the 'chans' type.
-func canvas(win *window, imgs []Img, chans chans) {
+func canvas(imgs []Img, chans chans) {
 
 	current := 0
 	origin := image.Point{0, 0}
@@ -93,14 +93,14 @@ func canvas(win *window, imgs []Img, chans chans) {
 			i = len(imgs) - 1
 		}
 		if current != i {
-			win.ClearAll()
+			window.ClearAll()
 		}
 
 		current = i
 
-		origin = show(win, &imgs[i], image.Point{0, 0})
+		origin = show(&imgs[i], image.Point{0, 0})
 		lg("show() %d, %v, %d", imgs[i].vimage, len(imgs[i].load))
-		preload(win, imgs, i+1)
+		preload(imgs, i+1)
 	}
 
 	panStart, panOrigin := image.Point{}, image.Point{}
@@ -119,7 +119,7 @@ func canvas(win *window, imgs []Img, chans chans) {
 			// and if we arent fs, resize maybe should be automatic
 			//case "fit":
 			//	b := imgs[current].vimage.Bounds()
-			//	win.Resize(b.Dx(), b.Dy())
+			//	window.Resize(b.Dx(), b.Dy())
 			case "pan":
 				switch cmd[1] {
 				case "left":
@@ -133,11 +133,11 @@ func canvas(win *window, imgs []Img, chans chans) {
 				case "down":
 					origin.Y += panIncrement
 				}
-				origin = show(win, &imgs[current], origin)
+				origin = show(&imgs[current], origin)
 			case "quit":
 				// Xgb bug prevents this from working?
 				// Anything wrong with calling os.Exit() directly? 
-				//xevent.Quit(win.X) 
+				//xevent.Quit(window.X) 
 				os.Exit(0)
 			case "!":
 				runExternal(cmd.Args(), imgs[current].name)
@@ -148,7 +148,7 @@ func canvas(win *window, imgs []Img, chans chans) {
 			panStart = pt
 			panOrigin = origin
 		case pt := <-chans.panStepChan:
-			origin = show(win, &imgs[current], panStart.Sub(pt).Add(panOrigin))
+			origin = show(&imgs[current], panStart.Sub(pt).Add(panOrigin))
 		}
 	}
 }
@@ -157,7 +157,7 @@ func canvas(win *window, imgs []Img, chans chans) {
 // current canvas size. This makes sure we never incorrectly position the image.
 // (i.e., panning never goes too far, and whenever the canvas is bigger than
 // the image, the origin is *always* (0, 0).
-func originTrans(pt image.Point, win *window, img *vimage) image.Point {
+func originTrans(pt image.Point, win *Window, img *vimage) image.Point {
 	// Quick aliases.
 	ww, wh := win.Geom.Width(), win.Geom.Height()
 	dw := img.Bounds().Dx() - ww
@@ -183,29 +183,29 @@ func originTrans(pt image.Point, win *window, img *vimage) image.Point {
 	return pt
 }
 
-func show(win *window, img *Img, pt image.Point) image.Point {
+func show(img *Img, pt image.Point) image.Point {
 	if img.vimage == nil {
-		win.setName(fmt.Sprintf("%s - Loading... ", img.name))
+		window.setName(fmt.Sprintf("%s - Loading... ", img.name))
 		// TODO Maybe should check if a preloader is already working on this image.
 		img.loading = true
-		load(win, img)
+		load(img)
 		img.vimage = <-img.load
 	}
 
 	if img.vimage.err != nil {
-		win.setName(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
+		window.setName(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
 		return pt
 	}
 
 	// Translate the origin to reflect the size of the image and canvas.
-	pt = originTrans(pt, win, img.vimage)
+	pt = originTrans(pt, window, img.vimage)
 
 	// Painting only paints the sub-image that is viewable.
-	win.paint(img.vimage.SubImage(
-		image.Rect(pt.X, pt.Y, pt.X+win.Geom.Width(), pt.Y+win.Geom.Height())))
+	window.paint(img.vimage.SubImage(
+		image.Rect(pt.X, pt.Y, pt.X+window.Geom.Width(), pt.Y+window.Geom.Height())))
 
 	// Always set the name of the window when we update it with a new image.
-	win.setName(img.name)
+	window.setName(img.name)
 
 	return pt
 }

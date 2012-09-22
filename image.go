@@ -24,7 +24,7 @@ type vimage struct {
 
 // newImage loads a decodes an image into an xgraphics.Image value and draws it
 // to an X pixmap.
-func newImage(win *window, img *Img) *vimage {
+func newImage(img *Img) *vimage {
 
 	start := time.Now()
 	file, err := os.Open(img.name)
@@ -40,10 +40,10 @@ func newImage(win *window, img *Img) *vimage {
 	}
 	lg("Decoded '%s' into image type '%s' (%s).", img.name, kind, time.Since(start))
 
-	// im = scale(im, win.Geom.Width(), win.Geom.Height())
+	// im = scale(im, window.Geom.Width(), window.Geom.Height())
 
 	start = time.Now()
-	reg := xgraphics.NewConvert(win.X, im)
+	reg := xgraphics.NewConvert(window.X, im)
 	lg("Converted '%s' to an xgraphics.Image type (%s).", img.name, time.Since(start))
 
 	// Only blend a checkered background if the image *may* have an alpha 
