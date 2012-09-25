@@ -15,26 +15,28 @@ type chans struct {
 	panStepChan  chan image.Point
 }
 
-func load(im *Img) {
+func load(im *Img) (vimg *vimage) {
 	if im.vimage != nil {
-		return
+		return im.vimage
 	}
 	// Skip image if already loaded.
 	select {
-	case vi := <-im.load:
-		im.load <- vi
+	case vimg = <-im.load:
+		im.load <- vimg
 		return
 	default:
 	}
 
-	v := newImage(im)
+	vimg = newImage(im)
 
 	// Tell the canvas that this image has been loaded.
 	select {
-	case im.load <- v:
+	case im.load <- vimg:
 	default:
 		lg("XXXX Somebody else loaded img faster than us! %v", im)
 	}
+
+	return
 }
 
 func loader(imgs chan *Img) {
@@ -48,7 +50,7 @@ var preloaders chan *Img
 
 const PreloadQueueSize = 32
 
-func preload(imgs []Img, idx int) {
+func preload(imgs []*Img, idx int) {
 
 	if preloaders == nil {
 		preloaders = make(chan *Img, PreloadQueueSize)
@@ -60,7 +62,7 @@ func preload(imgs []Img, idx int) {
 	// TODO: Should wrap arround!
 	// TODO: Replace FIFO with "priority queue" based on distance from idx
 	for i := 0; i <= PreloadQueueSize && i+idx < len(imgs); i++ {
-		img := &imgs[i+idx]
+		img := imgs[i+idx]
 		if img.vimage == nil && img.loading == false {
 			select {
 			case preloaders <- img:
@@ -77,34 +79,54 @@ func preload(imgs []Img, idx int) {
 	// could use last step to predict the general iteraction direction.
 }
 
+type Canvas struct {
+	imgs    []*Img
+	i       *Img
+	current int
+	origin  image.Point
+}
+
+func (c *Canvas) delImage(i int) {
+	c.imgs = append(c.imgs[:i], c.imgs[i+1:]...)
+	c.setImage(c.current)
+}
+
+func (c *Canvas) setImage(i int) {
+	if i >= len(c.imgs) {
+		i = 0
+	}
+	if i < 0 {
+		i = len(c.imgs) - 1
+	}
+
+	window.ClearAll()
+
+	c.current = i
+	c.i = c.imgs[i]
+	if c.i.vimage == nil {
+		window.setName(fmt.Sprintf("%s - Loading... ", c.i.name))
+		// TODO Maybe should check if a preloader is already working on this image.
+		c.i.loading = true
+		c.i.vimage = load(c.i)
+	}
+
+	if c.i.vimage.err != nil {
+		errLg.Printf("%s - Error loading... %s", c.i.name, c.i.vimage.err)
+		c.delImage(i)
+		return
+	}
+
+	c.origin = show(c.i, image.Point{0, 0})
+	lg("show() %v, %d, %s", c.i.vimage, len(c.i.load), c.i.name)
+	preload(c.imgs, i+1)
+}
+
 // canvas is meant to be run as goroutine that maintains the state of the image
 // viewer. It manipulates state by reading values from the channels defined in
 // the 'chans' type.
-func canvas(imgs []Img, chans chans) {
+func (c *Canvas) run(chans chans) {
 
-	current := 0
-	origin := image.Point{0, 0}
-
-	setImage := func(i int) {
-		if i >= len(imgs) {
-			i = 0
-		}
-		if i < 0 {
-			i = len(imgs) - 1
-		}
-		if current != i {
-			window.ClearAll()
-		}
-
-		current = i
-
-		origin = show(&imgs[i], image.Point{0, 0})
-		lg("show() %d, %v, %d", imgs[i].vimage, len(imgs[i].load))
-		preload(imgs, i+1)
-	}
-
-	// Display first image, and start preloading
-	setImage(current)
+	c.setImage(c.current)
 
 	panStart, panOrigin := image.Point{}, image.Point{}
 	for {
@@ -112,10 +134,10 @@ func canvas(imgs []Img, chans chans) {
 		case cmd := <-chans.ctl:
 			switch cmd[0] {
 			case "next":
-				setImage(current + 1)
+				c.setImage(c.current + 1)
 
 			case "prev":
-				setImage(current - 1)
+				c.setImage(c.current - 1)
 
 			// resize the window to fit the current image.
 			// Not needed since we are always full screen
@@ -126,32 +148,35 @@ func canvas(imgs []Img, chans chans) {
 			case "pan":
 				switch cmd[1] {
 				case "left":
-					origin.X -= panIncrement
+					c.origin.X -= panIncrement
 				case "right":
-					origin.X += panIncrement
+					c.origin.X += panIncrement
 
 				// up and down are reversed, X origin is the top-left corner
 				case "up":
-					origin.Y -= panIncrement
+					c.origin.Y -= panIncrement
 				case "down":
-					origin.Y += panIncrement
+					c.origin.Y += panIncrement
 				}
-				origin = show(&imgs[current], origin)
+				c.origin = show(c.i, c.origin)
 			case "quit":
 				// Xgb bug prevents this from working?
 				// Anything wrong with calling os.Exit() directly? 
 				//xevent.Quit(window.X) 
 				os.Exit(0)
 			case "!":
-				runExternal(cmd.Args(), imgs[current].name)
+				runExternal(cmd.Args(), c.i.name)
+				if _, err := os.Stat(c.i.name); err != nil {
+					c.delImage(c.current)
+				}
 			default:
 				errLg.Printf("Unrecognized command: %v", cmd)
 			}
 		case pt := <-chans.panStartChan:
 			panStart = pt
-			panOrigin = origin
+			panOrigin = c.origin
 		case pt := <-chans.panStepChan:
-			origin = show(&imgs[current], panStart.Sub(pt).Add(panOrigin))
+			c.origin = show(c.i, panStart.Sub(pt).Add(panOrigin))
 		}
 	}
 }
@@ -187,18 +212,6 @@ func originTrans(pt image.Point, win *Window, img *vimage) image.Point {
 }
 
 func show(img *Img, pt image.Point) image.Point {
-	if img.vimage == nil {
-		window.setName(fmt.Sprintf("%s - Loading... ", img.name))
-		// TODO Maybe should check if a preloader is already working on this image.
-		img.loading = true
-		load(img)
-		img.vimage = <-img.load
-	}
-
-	if img.vimage.err != nil {
-		window.setName(fmt.Sprintf("%s - Error loading... %s", img.name, img.vimage.err))
-		return pt
-	}
 
 	// Translate the origin to reflect the size of the image and canvas.
 	pt = originTrans(pt, window, img.vimage)

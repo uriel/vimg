@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io"
+	//"io"
 	"log"
 	"os"
 	"os/exec"
@@ -41,9 +41,12 @@ func runExternal(cmds []string, img string) {
 	}
 	errLg.Println(cmds)
 	c := exec.Command(cmds[0], cmds[1:]...)
-	er, _ := c.StderrPipe()
-	ou, _ := c.StdoutPipe()
-	c.Start()
-	go func() { io.Copy(os.Stdout, ou) }()
-	go func() { io.Copy(os.Stderr, er) }()
+	out, _ := c.CombinedOutput()
+	os.Stderr.Write(out)
+	// Run command in background
+	//er, _ := c.StderrPipe()
+	//ou, _ := c.StdoutPipe()
+	//c.Start()
+	//go func() { io.Copy(os.Stdout, ou) }()
+	//go func() { io.Copy(os.Stderr, er) }()
 }

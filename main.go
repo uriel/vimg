@@ -74,9 +74,9 @@ func main() {
 		errLg.Fatal("No images specified could be shown.")
 	}
 
-	imgs := make([]Img, 0, len(files))
+	canvas := Canvas{imgs: make([]*Img, 0, len(files))}
 	for _, name := range files {
-		imgs = append(imgs, Img{name, make(chan *vimage, 1), false, nil})
+		canvas.imgs = append(canvas.imgs, &Img{name, make(chan *vimage, 1), false, nil})
 	}
 
 	chans := chans{
@@ -93,7 +93,7 @@ func main() {
 	window.setupEventHandlers(chans)
 
 	// Create the canvas, this is the heart of the app
-	go canvas(imgs, chans)
+	go canvas.run(chans)
 
 	// Start the main X event loop.
 	xevent.Main(X)
