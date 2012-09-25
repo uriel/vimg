@@ -88,6 +88,9 @@ type Canvas struct {
 
 func (c *Canvas) delImage(i int) {
 	c.imgs = append(c.imgs[:i], c.imgs[i+1:]...)
+	if len(c.imgs) == 0 {
+		errLg.Fatal("No images left in image list!")
+	}
 	c.setImage(c.current)
 }
 
